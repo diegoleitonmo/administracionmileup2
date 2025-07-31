@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle, RefreshCw, Settings } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { strapiAuth } from "@/lib/strapi-auth"
 
@@ -22,8 +22,10 @@ export function StrapiLoginForm() {
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking")
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [credentials, setCredentials] = useState<LoginCredentials>({
     identifier: "",
     password: "",
@@ -31,31 +33,63 @@ export function StrapiLoginForm() {
 
   // Verificar conexión con Strapi al cargar el componente
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const isConnected = await strapiAuth.checkConnection()
-        setConnectionStatus(isConnected ? "connected" : "disconnected")
-      } catch (error) {
-        setConnectionStatus("disconnected")
-      }
-    }
-
     checkConnection()
   }, [])
+
+  const checkConnection = async () => {
+    setConnectionStatus("checking")
+    try {
+      console.log("🔍 Iniciando verificación de conexión completa...")
+
+      const diagnostics = await strapiAuth.getDiagnosticInfo()
+      setDiagnosticInfo(diagnostics)
+
+      const isConnected = diagnostics.connectionTest.success
+      setConnectionStatus(isConnected ? "connected" : "disconnected")
+
+      console.log("📊 Diagnóstico completo:", diagnostics)
+    } catch (error) {
+      console.error("❌ Error en diagnóstico:", error)
+      setConnectionStatus("disconnected")
+      setDiagnosticInfo({
+        error: error.message,
+        config: strapiAuth.getConfig(),
+        timestamp: new Date().toISOString(),
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+
+    // Validaciones básicas
+    if (!credentials.identifier.trim()) {
+      setError("Por favor ingresa tu email")
+      setIsLoading(false)
+      return
+    }
+
+    if (!credentials.password.trim()) {
+      setError("Por favor ingresa tu contraseña")
+      setIsLoading(false)
+      return
+    }
+
     try {
+      console.log("🚀 Iniciando proceso de login...")
+
       const authData = await strapiAuth.login(credentials)
       strapiAuth.saveAuthData(authData)
+
       // Mapear el rol de Strapi a los valores esperados
       let mappedRole: "administrador" | "comercio" | "asistente" = "asistente"
       const strapiRole = authData.user.role?.name?.toLowerCase()
+
       if (strapiRole === "administrador") mappedRole = "administrador"
       else if (strapiRole === "comercio") mappedRole = "comercio"
-      // Si no coincide, queda como "asistente"
+
       const user = {
         id: String(authData.user.id),
         name: authData.user.username || authData.user.email,
@@ -64,13 +98,31 @@ export function StrapiLoginForm() {
         avatar: `/placeholder.svg?height=40&width=40`,
         department: "",
       }
+
+      console.log("✅ Login exitoso, datos mapeados:", {
+        strapiRole: authData.user.role?.name,
+        mappedRole,
+        userId: user.id,
+        email: user.email,
+      })
+
       login(user, authData.jwt)
       router.push("/")
     } catch (err: any) {
+      console.error("❌ Error en login:", err)
       setError(err.message || "Error al iniciar sesión. Inténtalo de nuevo.")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleUseTestCredentials = () => {
+    console.log("🧪 Usando credenciales de prueba...")
+    setCredentials({
+      identifier: "diley963@gmail.com",
+      password: "Seguridad2025*.",
+    })
+    setError("")
   }
 
   const config = strapiAuth.getConfig()
@@ -115,33 +167,73 @@ export function StrapiLoginForm() {
             <>
               <AlertCircle className="w-4 h-4 text-red-500" />
               <span className="text-red-600">Sin conexión a Strapi</span>
+              <Button variant="ghost" size="sm" onClick={checkConnection} className="ml-2 h-6 px-2">
+                <RefreshCw className="w-3 h-3" />
+              </Button>
             </>
           )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Información de configuración en desarrollo */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
-            <div>
-              <strong>URL:</strong> {config.baseURL}
-            </div>
-            <div>
-              <strong>API Token:</strong> {config.apiToken}
-            </div>
-            <div>
-              <strong>Estado:</strong> {connectionStatus}
-            </div>
+        {/* Información de configuración */}
+        <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-gray-800">Configuración:</div>
+            <Button variant="ghost" size="sm" onClick={() => setShowDiagnostics(!showDiagnostics)} className="h-6 px-2">
+              <Settings className="w-3 h-3" />
+            </Button>
           </div>
-        )}
+          <div>
+            <strong>URL:</strong> {config.baseURL}
+          </div>
+          <div>
+            <strong>API Token:</strong> {config.apiToken}
+          </div>
+          <div>
+            <strong>Estado:</strong> {connectionStatus}
+          </div>
+
+          {showDiagnostics && diagnosticInfo && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Ver diagnóstico completo</summary>
+              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-60">
+                {JSON.stringify(diagnosticInfo, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
 
         {/* Alerta de conexión */}
         {connectionStatus === "disconnected" && (
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-red-700 text-sm">
-              No se puede conectar con Strapi. Verifica que esté ejecutándose en {config.baseURL}
+              <div className="space-y-2">
+                <div>No se puede conectar con Strapi en {config.baseURL}</div>
+                <div className="text-xs">
+                  <strong>Posibles causas:</strong>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>El servidor Strapi no está ejecutándose</li>
+                    <li>URL incorrecta en NEXT_PUBLIC_STRAPI_URL</li>
+                    <li>El servidor devuelve HTML en lugar de JSON</li>
+                    <li>Problemas de CORS en Strapi</li>
+                    <li>API Token no configurado o inválido</li>
+                    <li>Firewall o proxy bloqueando las peticiones</li>
+                  </ul>
+                </div>
+                {diagnosticInfo?.connectionTest?.error && (
+                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
+                    <strong>Error específico:</strong> {diagnosticInfo.connectionTest.error}
+                  </div>
+                )}
+                {diagnosticInfo?.connectionTest?.responsePreview && (
+                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
+                    <strong>Respuesta del servidor:</strong>
+                    <pre className="mt-1 whitespace-pre-wrap">{diagnosticInfo.connectionTest.responsePreview}</pre>
+                  </div>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         )}
@@ -157,14 +249,16 @@ export function StrapiLoginForm() {
               type="email"
               placeholder="tu@email.com"
               value={credentials.identifier}
-              onChange={(e) =>
+              onChange={(e) => {
                 setCredentials((prev) => ({
                   ...prev,
                   identifier: e.target.value,
                 }))
-              }
+                if (error) setError("")
+              }}
               className="h-11 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500"
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -179,14 +273,16 @@ export function StrapiLoginForm() {
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={credentials.password}
-                onChange={(e) =>
+                onChange={(e) => {
                   setCredentials((prev) => ({
                     ...prev,
                     password: e.target.value,
                   }))
-                }
+                  if (error) setError("")
+                }}
                 className="h-11 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500 pr-10"
                 required
+                disabled={isLoading}
               />
               <Button
                 type="button"
@@ -194,6 +290,7 @@ export function StrapiLoginForm() {
                 size="sm"
                 className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4 text-gray-400" />
@@ -208,7 +305,22 @@ export function StrapiLoginForm() {
           {error && (
             <Alert className="border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
+              <AlertDescription className="text-red-700 text-sm">
+                <div className="space-y-2">
+                  <div>{error}</div>
+                  {error.includes("HTML en lugar de JSON") && (
+                    <div className="text-xs">
+                      <strong>Soluciones sugeridas:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Verifica que Strapi esté ejecutándose en {config.baseURL}</li>
+                        <li>Confirma que el endpoint /api/auth/local esté disponible</li>
+                        <li>Revisa la configuración de CORS en Strapi</li>
+                        <li>Verifica que no haya un proxy o servidor web interceptando las peticiones</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </AlertDescription>
             </Alert>
           )}
 
@@ -246,16 +358,18 @@ export function StrapiLoginForm() {
               variant="outline"
               size="sm"
               className="mt-3 text-blue-600 border-blue-200 hover:bg-blue-100 bg-transparent"
-              onClick={() =>
-                setCredentials({
-                  identifier: "diley963@gmail.com",
-                  password: "Seguridad2025*.",
-                })
-              }
-              disabled={connectionStatus === "disconnected"}
+              onClick={handleUseTestCredentials}
+              disabled={isLoading || connectionStatus === "disconnected"}
             >
               Usar credenciales de prueba
             </Button>
+
+            {/* Confirmación de credenciales aplicadas */}
+            {credentials.identifier === "diley963@gmail.com" && credentials.password === "Seguridad2025*." && (
+              <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                ✅ Credenciales de prueba aplicadas
+              </div>
+            )}
           </div>
         </div>
 
@@ -268,6 +382,22 @@ export function StrapiLoginForm() {
             ¿Necesitas ayuda?
           </Button>
         </div>
+
+        {/* Debug Info en desarrollo */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="pt-4 border-t border-gray-100">
+            <details className="text-xs text-gray-500">
+              <summary className="cursor-pointer">Debug Info</summary>
+              <div className="mt-2 space-y-1">
+                <div>Estado: {isLoading ? "Cargando" : "Listo"}</div>
+                <div>Conexión: {connectionStatus}</div>
+                <div>Error: {error || "Ninguno"}</div>
+                <div>API Token: {config.hasApiToken ? "Configurado" : "No configurado"}</div>
+                <div>Diagnósticos: {showDiagnostics ? "Visibles" : "Ocultos"}</div>
+              </div>
+            </details>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
