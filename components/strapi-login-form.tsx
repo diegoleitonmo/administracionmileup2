@@ -49,10 +49,13 @@ export function StrapiLoginForm() {
 
       console.log("📊 Diagnóstico completo:", diagnostics)
     } catch (error) {
-      console.error("❌ Error en diagnóstico:", error)
+      let errorMsg = "Error desconocido"
+      if (typeof error === "string") errorMsg = error
+      else if (error instanceof Error) errorMsg = error.message
+      console.error("❌ Error en diagnóstico:", errorMsg)
       setConnectionStatus("disconnected")
       setDiagnosticInfo({
-        error: error.message,
+        error: errorMsg,
         config: strapiAuth.getConfig(),
         timestamp: new Date().toISOString(),
       })

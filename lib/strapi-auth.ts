@@ -210,9 +210,12 @@ class StrapiAuthService {
     try {
       return JSON.parse(responseText)
     } catch (parseError) {
-      console.error("❌ Error parseando JSON:", parseError)
+      let errorMsg = "Error desconocido"
+      if (typeof parseError === "string") errorMsg = parseError
+      else if (parseError instanceof Error) errorMsg = parseError.message
+      console.error("❌ Error parseando JSON:", errorMsg)
       console.error("📄 Contenido de respuesta:", responseText)
-      throw new Error(`Error parseando respuesta JSON: ${parseError.message}`)
+      throw new Error(`Error parseando respuesta JSON: ${errorMsg}`)
     }
   }
 
@@ -474,7 +477,10 @@ class StrapiAuthService {
       console.log("✅ Token válido")
       return true
     } catch (error) {
-      console.log("❌ Token inválido:", error.message)
+      let errorMsg = "Error desconocido"
+      if (typeof error === "string") errorMsg = error
+      else if (error instanceof Error) errorMsg = error.message
+      console.log("❌ Token inválido:", errorMsg)
       return false
     }
   }
