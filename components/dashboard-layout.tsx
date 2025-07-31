@@ -1,11 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { useAuth } from "@/hooks/use-auth"
+import { strapiAuth } from "@/lib/strapi-auth"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -16,6 +17,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, logout } = useAuth()
+  const [strapiUser, setStrapiUser] = useState<any>(null)
+
+  useEffect(() => {
+    const fetchStrapiUser = async () => {
+      const token = strapiAuth.getStoredToken()
+      if (token) {
+        try {
+          const userData = await strapiAuth.getCurrentUser(token)
+          setStrapiUser(userData)
+        } catch (err) {
+          setStrapiUser(null)
+        }
+      }
+    }
+    fetchStrapiUser()
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -30,7 +47,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        user={user}
+        user={strapiUser || user}
         userMenuOpen={userMenuOpen}
         setUserMenuOpen={setUserMenuOpen}
         handleLogout={handleLogout}

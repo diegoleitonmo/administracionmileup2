@@ -28,8 +28,9 @@ export function useAuth() {
     // Simular carga de datos del usuario desde localStorage
     const loadUser = () => {
       try {
-        const storedUser = localStorage.getItem("mileup_user")
-        const token = localStorage.getItem("mileup_jwt")
+        // Buscar usuario y token de Strapi
+        const storedUser = localStorage.getItem("strapi_user") || localStorage.getItem("mileup_user")
+        const token = localStorage.getItem("strapi_jwt") || localStorage.getItem("mileup_jwt")
 
         if (storedUser && token) {
           const user = JSON.parse(storedUser)
@@ -39,7 +40,6 @@ export function useAuth() {
             isAuthenticated: true,
           })
         } else {
-          // No hay usuario almacenado, iniciar sin autenticar
           setAuthState({
             user: null,
             isLoading: false,
@@ -60,6 +60,13 @@ export function useAuth() {
   }, [])
 
   const logout = () => {
+    // Limpiar ambos tipos de datos
+    localStorage.removeItem("strapi_jwt")
+    localStorage.removeItem("strapi_user")
+    localStorage.removeItem("mileup_jwt")
+    localStorage.removeItem("mileup_user")
+    document.cookie = "strapi-token=; Max-Age=0; path=/;"
+    document.cookie = "auth-token=; Max-Age=0; path=/;"
     setAuthState({
       user: null,
       isLoading: false,

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { strapiAuth } from "@/lib/strapi-auth"
 
 interface LoginCredentials {
   email: string
@@ -28,62 +29,39 @@ export function LoginForm() {
     password: "",
   })
 
-  // Usuarios demo - el rol se determina automáticamente por email
-  const demoUsers = {
-    "admin@purple.com": {
-      password: "admin123",
-      name: "David Greymaax",
-      role: "administrador" as const,
-      department: "Administración",
-    },
-    "comercio@purple.com": {
-      password: "comercio123",
-      name: "María González",
-      role: "comercio" as const,
-      department: "Ventas",
-    },
-    "asistente@purple.com": {
-      password: "asistente123",
-      name: "Carlos López",
-      role: "asistente" as const,
-      department: "Soporte",
-    },
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
-      // Simular delay de autenticación
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Login real con Strapi
+      const authData = await strapiAuth.login({
+        identifier: credentials.email,
+        password: credentials.password,
+      })
+      strapiAuth.saveAuthData(authData)
 
-      const demoUser = demoUsers[credentials.email as keyof typeof demoUsers]
+      // Mapear usuario Strapi a User
+      // Mapear el rol de Strapi a los valores esperados
+      let mappedRole: "administrador" | "comercio" | "asistente" = "asistente"
+      const strapiRole = authData.user.role?.name?.toLowerCase()
+      if (strapiRole === "administrador") mappedRole = "administrador"
+      else if (strapiRole === "comercio") mappedRole = "comercio"
+      // Si no coincide, queda como "asistente"
 
-      // Validar credenciales demo
-      if (demoUser && credentials.password === demoUser.password) {
-        const user = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: demoUser.name,
-          email: credentials.email,
-          role: demoUser.role,
-          avatar: `/placeholder.svg?height=40&width=40`,
-          department: demoUser.department,
-        }
-
-        const token = `demo_token_${Date.now()}`
-
-        // Usar la función login del hook
-        login(user, token)
-
-        // Redireccionar al dashboard
-        router.push("/")
-      } else {
-        setError("Credenciales incorrectas. Verifica tu email y contraseña.")
+      const user = {
+        id: String(authData.user.id),
+        name: authData.user.username || authData.user.email,
+        email: authData.user.email,
+        role: mappedRole,
+        avatar: `/placeholder.svg?height=40&width=40`,
+        department: "",
       }
-    } catch (err) {
-      setError("Error al iniciar sesión. Inténtalo de nuevo.")
+      login(user, authData.jwt)
+      router.push("/")
+    } catch (err: any) {
+      setError(err.message || "Error al iniciar sesión. Inténtalo de nuevo.")
     } finally {
       setIsLoading(false)
     }

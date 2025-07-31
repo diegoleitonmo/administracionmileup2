@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
-import { useStrapiAuth } from "@/hooks/use-strapi-auth"
+import { useAuth } from "@/hooks/use-auth"
 import { strapiAuth } from "@/lib/strapi-auth"
 
 interface LoginCredentials {
@@ -19,9 +19,11 @@ interface LoginCredentials {
 
 export function StrapiLoginForm() {
   const router = useRouter()
-  const { login, isLoading, error } = useStrapiAuth()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [credentials, setCredentials] = useState<LoginCredentials>({
     identifier: "",
     password: "",
@@ -34,7 +36,6 @@ export function StrapiLoginForm() {
         const isConnected = await strapiAuth.checkConnection()
         setConnectionStatus(isConnected ? "connected" : "disconnected")
       } catch (error) {
-        console.error("Connection check failed:", error)
         setConnectionStatus("disconnected")
       }
     }
@@ -44,14 +45,31 @@ export function StrapiLoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    setIsLoading(true)
+    setError("")
     try {
-      await login(credentials)
-      // Redireccionar al dashboard después del login exitoso
+      const authData = await strapiAuth.login(credentials)
+      strapiAuth.saveAuthData(authData)
+      // Mapear el rol de Strapi a los valores esperados
+      let mappedRole: "administrador" | "comercio" | "asistente" = "asistente"
+      const strapiRole = authData.user.role?.name?.toLowerCase()
+      if (strapiRole === "administrador") mappedRole = "administrador"
+      else if (strapiRole === "comercio") mappedRole = "comercio"
+      // Si no coincide, queda como "asistente"
+      const user = {
+        id: String(authData.user.id),
+        name: authData.user.username || authData.user.email,
+        email: authData.user.email,
+        role: mappedRole,
+        avatar: `/placeholder.svg?height=40&width=40`,
+        department: "",
+      }
+      login(user, authData.jwt)
       router.push("/")
-    } catch (error) {
-      // El error ya se maneja en el hook
-      console.error("Login failed:", error)
+    } catch (err: any) {
+      setError(err.message || "Error al iniciar sesión. Inténtalo de nuevo.")
+    } finally {
+      setIsLoading(false)
     }
   }
 

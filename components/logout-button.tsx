@@ -19,9 +19,9 @@ export function LogoutButton({ variant = "ghost", size = "sm", showIcon = true, 
   const handleLogout = () => {
     logout()
     if (typeof window !== "undefined") {
-      localStorage.removeItem("mileup_jwt")
-      localStorage.removeItem("mileup_user")
-      document.cookie = "auth-token=; Max-Age=0; path=/;"
+      localStorage.removeItem("strapi_jwt")
+      localStorage.removeItem("strapi_user")
+      document.cookie = "strapi-token=; Max-Age=0; path=/;"
     }
     router.push("/login")
   }
