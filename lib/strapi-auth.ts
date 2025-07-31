@@ -36,6 +36,17 @@ export interface LoginCredentials {
   identifier: string // email o username
   password: string
 }
+
+export interface ConnectionTestResult {
+  success: boolean
+  status?: number
+  contentType?: string
+  error?: string
+  isHtml?: boolean
+  responsePreview?: string
+  url?: string
+}
+
 class StrapiAuthService {
   private baseURL: string
   private apiToken?: string
@@ -65,7 +76,68 @@ class StrapiAuthService {
     return headers
   }
 
+  // Test de conectividad con manejo de errores de red
+  async testConnection(): Promise<ConnectionTestResult> {
+    try {
+      console.log(`🧪 Probando conexión con: ${this.baseURL}`)
 
+      // Primero probar si el servidor está disponible
+      const response = await fetch(this.baseURL, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(5000), // Timeout más corto para prueba inicial
+      })
+
+      const contentType = response.headers.get("content-type") || ""
+      const isJson = contentType.includes("application/json")
+      const isHtml = contentType.includes("text/html")
+
+      let responseText = ""
+      try {
+        responseText = await response.text()
+      } catch (textError) {
+        console.error("❌ Error leyendo respuesta:", textError)
+      }
+
+      console.log(`📡 Respuesta del servidor:`, {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        isJson,
+        isHtml,
+        responsePreview: responseText.substring(0, 100),
+      })
+
+      return {
+        success: response.ok || response.status < 500, // Considerar exitoso si no es error de servidor
+        status: response.status,
+        contentType,
+        isHtml,
+        responsePreview: responseText.substring(0, 300),
+        url: this.baseURL,
+      }
+    } catch (error) {
+      console.error("❌ Error de conexión:", error)
+
+      let errorMessage = "Error de conexión desconocido"
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        errorMessage = `No se puede conectar con ${this.baseURL}. Verifica que Strapi esté ejecutándose.`
+      } else if (error.name === "AbortError") {
+        errorMessage = "Timeout: El servidor tardó demasiado en responder."
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      return {
+        success: false,
+        error: errorMessage,
+        responsePreview: `Error: ${errorMessage}`,
+        url: this.baseURL,
+      }
+    }
+  }
 
   // Verificar si la respuesta es HTML en lugar de JSON
   private async parseResponse(response: Response): Promise<any> {
@@ -114,7 +186,7 @@ class StrapiAuthService {
     }
   }
 
-  // Login con Strapi con múltiples intentos de URL
+  // Login con Strapi con mejor manejo de errores de red
   async login(credentials: LoginCredentials): Promise<StrapiAuthResponse> {
     const loginUrls = [
       `${this.baseURL}/api/auth/local`,
@@ -122,6 +194,20 @@ class StrapiAuthService {
     ]
 
     let lastError: Error | null = null
+
+    // Primero verificar que el servidor esté disponible
+    const connectionTest = await this.testConnection()
+    if (!connectionTest.success) {
+      throw new Error(
+        `No se puede conectar con Strapi en ${this.baseURL}.\n\n` +
+          `Error: ${connectionTest.error}\n\n` +
+          `Posibles soluciones:\n` +
+          `1. Verifica que Strapi esté ejecutándose en ${this.baseURL}\n` +
+          `2. Confirma que el puerto 1337 esté disponible\n` +
+          `3. Revisa la configuración de NEXT_PUBLIC_STRAPI_URL en .env\n` +
+          `4. Asegúrate de que no haya firewall bloqueando la conexión`,
+      )
+    }
 
     for (const loginUrl of loginUrls) {
       try {
@@ -186,7 +272,11 @@ class StrapiAuthService {
           console.log("🔍 Obteniendo datos completos del usuario...")
           const fullUserData = await this.getUserById(responseData.user.id)
           // Normalizar el rol si es 'Authenticated'
-          if (fullUserData.role && typeof fullUserData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(fullUserData.role.name)) {
+          if (
+            fullUserData.role &&
+            typeof fullUserData.role.name === "string" &&
+            ["Authenticated", "authenticated", "auth", "default"].includes(fullUserData.role.name)
+          ) {
             fullUserData.role.name = "administrador"
             fullUserData.role.type = "administrador"
           }
@@ -197,7 +287,12 @@ class StrapiAuthService {
         } catch (userError) {
           console.warn("⚠️ No se pudieron obtener datos completos, usando datos básicos:", userError)
           // Normalizar el rol si es 'Authenticated'
-          if (responseData.user && responseData.user.role && typeof responseData.user.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.user.role.name)) {
+          if (
+            responseData.user &&
+            responseData.user.role &&
+            typeof responseData.user.role.name === "string" &&
+            ["Authenticated", "authenticated", "auth", "default"].includes(responseData.user.role.name)
+          ) {
             responseData.user.role.name = "administrador"
             responseData.user.role.type = "administrador"
           }
@@ -266,7 +361,11 @@ class StrapiAuthService {
         })
 
         // Normalizar el rol si es 'Authenticated'
-        if (responseData.role && typeof responseData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)) {
+        if (
+          responseData.role &&
+          typeof responseData.role.name === "string" &&
+          ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)
+        ) {
           responseData.role.name = "administrador"
           responseData.role.type = "administrador"
         }
@@ -323,7 +422,11 @@ class StrapiAuthService {
         })
 
         // Normalizar el rol si es 'Authenticated'
-        if (responseData.role && typeof responseData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)) {
+        if (
+          responseData.role &&
+          typeof responseData.role.name === "string" &&
+          ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)
+        ) {
           responseData.role.name = "administrador"
           responseData.role.type = "administrador"
         }
@@ -458,7 +561,24 @@ class StrapiAuthService {
     }
   }
 
+  // Obtener información de diagnóstico
+  async getDiagnosticInfo(): Promise<any> {
+    console.log("🔍 Ejecutando diagnóstico completo...")
 
+    const testResult = await this.testConnection()
+    const config = this.getConfig()
+
+    return {
+      config,
+      connectionTest: testResult,
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        strapiUrl: process.env.NEXT_PUBLIC_STRAPI_URL,
+        hasApiToken: !!process.env.NEXT_PUBLIC_STRAPI_API_TOKEN,
+      },
+      timestamp: new Date().toISOString(),
+    }
+  }
 }
 
 export const strapiAuth = new StrapiAuthService()

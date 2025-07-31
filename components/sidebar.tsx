@@ -19,8 +19,29 @@ interface SidebarProps {
 export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: SidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
 
+  // LOGS DE DIAGNÓSTICO
+  console.log("=== SIDEBAR DEBUG ===")
+  console.log("Raw user object:", user)
+  console.log("User type:", typeof user)
+  console.log("User keys:", user ? Object.keys(user) : "null")
+  console.log("User role raw:", user?.role)
+  console.log("User role type:", typeof user?.role)
+
+  // Normalizar rol
+  const normalizedRole =
+    user?.role && typeof user.role === "object" && "name" in user.role
+      ? (user.role as { name: string }).name
+      : user?.role
+
+  console.log("Normalized role:", normalizedRole)
+  console.log("Role type after normalization:", typeof normalizedRole)
+
   // Obtener menú filtrado por rol
-  const menuItems = user?.role ? getMenuByRole(user.role, pathname) : []
+  const menuItems = normalizedRole ? getMenuByRole(normalizedRole, pathname) : []
+
+  console.log("Menu items count:", menuItems.length)
+  console.log("Menu items:", menuItems)
+  console.log("=== END SIDEBAR DEBUG ===")
 
   const toggleSubmenu = (href: string) => {
     setExpandedMenus((prev) => (prev.includes(href) ? prev.filter((item) => item !== href) : [...prev, href]))
@@ -29,10 +50,6 @@ export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: Sidebar
   const renderMenuItem = (item: MenuItem, level = 0) => {
     const isExpanded = expandedMenus.includes(item.href)
     const hasActiveSubmenu = item.submenu?.some((subItem) => subItem.href === pathname)
-  const normalizedRole = user?.role && typeof user.role === "object" && "name" in user.role
-    ? (user.role as { name: string }).name
-    : user?.role
-  const menuItems = normalizedRole ? getMenuByRole(normalizedRole, pathname) : []
     return (
       <div key={item.href}>
         <Button
@@ -106,21 +123,17 @@ export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: Sidebar
                 const roleValue =
                   user?.role && typeof user.role === "object" && "name" in user.role
                     ? (user.role as { name: string }).name
-                    : user?.role;
+                    : user?.role
                 return (
                   <Badge
                     variant={
-                      roleValue === "administrador"
-                        ? "default"
-                        : roleValue === "comercio"
-                        ? "secondary"
-                        : "outline"
+                      roleValue === "administrador" ? "default" : roleValue === "comercio" ? "secondary" : "outline"
                     }
                     className="text-xs px-2 py-1 rounded-full"
                   >
                     {getRoleName(roleValue || "asistente")}
                   </Badge>
-                );
+                )
               })()}
             </div>
           </div>

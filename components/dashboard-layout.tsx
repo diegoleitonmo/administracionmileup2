@@ -18,23 +18,41 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const [strapiUser, setStrapiUser] = useState<any>(null)
+
+  // LOGS DE DIAGNÓSTICO DETALLADOS
+  console.log("=== DASHBOARD LAYOUT DEBUG ===")
+  console.log("useAuth user:", user)
+  console.log("strapiUser:", strapiUser)
+
   // Normalizar user para evitar errores de React child
   const normalizedUser = (() => {
     const baseUser = strapiUser || user
-    if (!baseUser) return null
-    return {
+    console.log("baseUser (strapiUser || user):", baseUser)
+
+    if (!baseUser) {
+      console.log("No base user found, returning null")
+      return null
+    }
+
+    const normalized = {
       ...baseUser,
       name:
         typeof baseUser.name === "string"
           ? baseUser.name
           : Array.isArray(baseUser.name)
-          ? baseUser.name.join(" ")
-          : baseUser.username || baseUser.email || "Usuario",
+            ? baseUser.name.join(" ")
+            : baseUser.username || baseUser.email || "Usuario",
       role:
         baseUser.role && typeof baseUser.role === "object" && "name" in baseUser.role
           ? baseUser.role.name
           : baseUser.role || "asistente",
     }
+
+    console.log("Normalized user:", normalized)
+    console.log("Normalized user role:", normalized.role)
+    console.log("=== END DASHBOARD LAYOUT DEBUG ===")
+
+    return normalized
   })()
 
   useEffect(() => {
