@@ -5,11 +5,13 @@ import { Users, UserCheck, UserX, Shield } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function UsersManagementPage() {
+
   return (
     <AuthGuard>
       <StrapiDashboardLayout>
         <div className="p-6 space-y-6">
-          {/* Header */}
+
+          {/* Header gfdgf*/}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
