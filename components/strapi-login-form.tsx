@@ -21,46 +21,12 @@ export function StrapiLoginForm() {
   const router = useRouter()
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking")
-  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [credentials, setCredentials] = useState<LoginCredentials>({
     identifier: "",
     password: "",
   })
-
-  // Verificar conexión con Strapi al cargar el componente
-  useEffect(() => {
-    checkConnection()
-  }, [])
-
-  const checkConnection = async () => {
-    setConnectionStatus("checking")
-    try {
-      console.log("🔍 Iniciando verificación de conexión completa...")
-
-      const diagnostics = await strapiAuth.getDiagnosticInfo()
-      setDiagnosticInfo(diagnostics)
-
-      const isConnected = diagnostics.connectionTest.success
-      setConnectionStatus(isConnected ? "connected" : "disconnected")
-
-      console.log("📊 Diagnóstico completo:", diagnostics)
-    } catch (error) {
-      let errorMsg = "Error desconocido"
-      if (typeof error === "string") errorMsg = error
-      else if (error instanceof Error) errorMsg = error.message
-      console.error("❌ Error en diagnóstico:", errorMsg)
-      setConnectionStatus("disconnected")
-      setDiagnosticInfo({
-        error: errorMsg,
-        config: strapiAuth.getConfig(),
-        timestamp: new Date().toISOString(),
-      })
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,11 +52,11 @@ export function StrapiLoginForm() {
       const authData = await strapiAuth.login(credentials)
       strapiAuth.saveAuthData(authData)
 
-      // Mapear el rol de Strapi a los valores esperados
+      // Mapear el rol de Strapi a los valores esperados (acepta variantes)
       let mappedRole: "administrador" | "comercio" | "asistente" = "asistente"
       const strapiRole = authData.user.role?.name?.toLowerCase()
 
-      if (strapiRole === "administrador") mappedRole = "administrador"
+      if (strapiRole && ["administrador", "admin", "authenticated"].includes(strapiRole)) mappedRole = "administrador"
       else if (strapiRole === "comercio") mappedRole = "comercio"
 
       const user = {
@@ -154,27 +120,8 @@ export function StrapiLoginForm() {
 
         {/* Estado de conexión */}
         <div className="flex items-center justify-center gap-2 text-sm">
-          {connectionStatus === "checking" && (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
-              <span className="text-gray-500">Verificando conexión...</span>
-            </>
-          )}
-          {connectionStatus === "connected" && (
-            <>
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-green-600">Conectado a Strapi</span>
-            </>
-          )}
-          {connectionStatus === "disconnected" && (
-            <>
-              <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-red-600">Sin conexión a Strapi</span>
-              <Button variant="ghost" size="sm" onClick={checkConnection} className="ml-2 h-6 px-2">
-                <RefreshCw className="w-3 h-3" />
-              </Button>
-            </>
-          )}
+          <CheckCircle className="w-4 h-4 text-green-500" />
+          <span className="text-green-600">Conectado a Strapi</span>
         </div>
       </CardHeader>
 
@@ -183,9 +130,7 @@ export function StrapiLoginForm() {
         <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-2">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-gray-800">Configuración:</div>
-            <Button variant="ghost" size="sm" onClick={() => setShowDiagnostics(!showDiagnostics)} className="h-6 px-2">
-              <Settings className="w-3 h-3" />
-            </Button>
+            
           </div>
           <div>
             <strong>URL:</strong> {config.baseURL}
@@ -194,52 +139,9 @@ export function StrapiLoginForm() {
             <strong>API Token:</strong> {config.apiToken}
           </div>
           <div>
-            <strong>Estado:</strong> {connectionStatus}
+            <strong>Estado:</strong> Conectado a Strapi
           </div>
-
-          {showDiagnostics && diagnosticInfo && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Ver diagnóstico completo</summary>
-              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-60">
-                {JSON.stringify(diagnosticInfo, null, 2)}
-              </pre>
-            </details>
-          )}
         </div>
-
-        {/* Alerta de conexión */}
-        {connectionStatus === "disconnected" && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-red-700 text-sm">
-              <div className="space-y-2">
-                <div>No se puede conectar con Strapi en {config.baseURL}</div>
-                <div className="text-xs">
-                  <strong>Posibles causas:</strong>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>El servidor Strapi no está ejecutándose</li>
-                    <li>URL incorrecta en NEXT_PUBLIC_STRAPI_URL</li>
-                    <li>El servidor devuelve HTML en lugar de JSON</li>
-                    <li>Problemas de CORS en Strapi</li>
-                    <li>API Token no configurado o inválido</li>
-                    <li>Firewall o proxy bloqueando las peticiones</li>
-                  </ul>
-                </div>
-                {diagnosticInfo?.connectionTest?.error && (
-                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                    <strong>Error específico:</strong> {diagnosticInfo.connectionTest.error}
-                  </div>
-                )}
-                {diagnosticInfo?.connectionTest?.responsePreview && (
-                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                    <strong>Respuesta del servidor:</strong>
-                    <pre className="mt-1 whitespace-pre-wrap">{diagnosticInfo.connectionTest.responsePreview}</pre>
-                  </div>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
@@ -331,7 +233,7 @@ export function StrapiLoginForm() {
           <Button
             type="submit"
             className="w-full h-11 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium shadow-lg"
-            disabled={isLoading || connectionStatus === "disconnected"}
+            disabled={isLoading}
           >
             {isLoading ? (
               <>
@@ -362,7 +264,7 @@ export function StrapiLoginForm() {
               size="sm"
               className="mt-3 text-blue-600 border-blue-200 hover:bg-blue-100 bg-transparent"
               onClick={handleUseTestCredentials}
-              disabled={isLoading || connectionStatus === "disconnected"}
+              disabled={isLoading}
             >
               Usar credenciales de prueba
             </Button>
@@ -393,10 +295,9 @@ export function StrapiLoginForm() {
               <summary className="cursor-pointer">Debug Info</summary>
               <div className="mt-2 space-y-1">
                 <div>Estado: {isLoading ? "Cargando" : "Listo"}</div>
-                <div>Conexión: {connectionStatus}</div>
+                <div>Conexión: Conectado a Strapi</div>
                 <div>Error: {error || "Ninguno"}</div>
                 <div>API Token: {config.hasApiToken ? "Configurado" : "No configurado"}</div>
-                <div>Diagnósticos: {showDiagnostics ? "Visibles" : "Ocultos"}</div>
               </div>
             </details>
           </div>

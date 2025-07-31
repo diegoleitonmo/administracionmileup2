@@ -18,6 +18,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const [strapiUser, setStrapiUser] = useState<any>(null)
+  // Normalizar user para evitar errores de React child
+  const normalizedUser = (() => {
+    const baseUser = strapiUser || user
+    if (!baseUser) return null
+    return {
+      ...baseUser,
+      name:
+        typeof baseUser.name === "string"
+          ? baseUser.name
+          : Array.isArray(baseUser.name)
+          ? baseUser.name.join(" ")
+          : baseUser.username || baseUser.email || "Usuario",
+      role:
+        baseUser.role && typeof baseUser.role === "object" && "name" in baseUser.role
+          ? baseUser.role.name
+          : baseUser.role || "asistente",
+    }
+  })()
 
   useEffect(() => {
     const fetchStrapiUser = async () => {
@@ -47,7 +65,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        user={strapiUser || user}
+        user={normalizedUser}
         userMenuOpen={userMenuOpen}
         setUserMenuOpen={setUserMenuOpen}
         handleLogout={handleLogout}
@@ -55,7 +73,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         setSidebarOpen={setSidebarOpen}
       />
       <div className="flex">
-        <Sidebar user={user} pathname={pathname} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar user={normalizedUser} pathname={pathname} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-64"}`}>{children}</main>
       </div>
     </div>

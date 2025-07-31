@@ -44,6 +44,12 @@ export function Header({
   sidebarOpen,
   setSidebarOpen,
 }: HeaderProps) {
+  // Depuración: mostrar el usuario recibido
+  // Normalizar el rol: si user.role es string válida, úsala; si es objeto con name, usa name; si no, usa null
+  let normalizedRole = null;
+ 
+  // Si no hay rol válido, usar "asistente" como fallback
+  const roleToShow = normalizedRole || "asistente";
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between fixed top-0 left-0 right-0 z-50">
       {/* Left Section */}
@@ -88,8 +94,14 @@ export function Header({
                 </AvatarFallback>
               </Avatar>
               <div className="text-left">
-                <span className="text-sm font-medium text-gray-700 block">{user?.name || "David Greymaax"}</span>
-                <span className="text-xs text-gray-500">{getRoleName(user?.role || "asistente")}</span>
+                <span className="text-sm font-medium text-gray-700 block">{
+                  typeof user?.name === "string"
+                    ? user.name
+                    : Array.isArray(user?.name)
+                    ? user.name.join(" ")
+                    : "Sin usuario"
+                }</span>
+                <span className="text-xs text-gray-500">{getRoleName(roleToShow)}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </Button>
@@ -97,9 +109,15 @@ export function Header({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user?.name || "David Greymaax"}</p>
+                <p className="text-sm font-medium">{
+                  typeof user?.name === "string"
+                    ? user.name
+                    : Array.isArray(user?.name)
+                    ? user.name.join(" ")
+                    : "David Greymaax"
+                }</p>
                 <p className="text-xs text-gray-500">{user?.email || "david.grey@company.com"}</p>
-                <p className="text-xs text-purple-600 font-medium">{getRoleName(user?.role || "asistente")}</p>
+                <p className="text-xs text-purple-600 font-medium">{getRoleName(roleToShow)}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

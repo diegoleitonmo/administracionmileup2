@@ -23,7 +23,16 @@ export function RoleSwitcher() {
     { value: "asistente", label: "Asistente", icon: Users, color: "outline" },
   ] as const
 
-  const currentRole = roles.find((role) => role.value === user?.role)
+  // user.role puede ser string o objeto, extraer el nombre si es necesario
+  const userRoleValue =
+    user?.role && typeof user.role === "object" && "name" in user.role
+      ? (user.role as { name: string }).name
+      : user?.role
+  // Si userRoleValue es un objeto, extraer el nombre
+  const normalizedRole = typeof userRoleValue === "object" && userRoleValue !== null && "name" in userRoleValue
+    ? (userRoleValue as { name: string }).name
+    : userRoleValue
+  const currentRole = roles.find((role) => role.value === normalizedRole)
 
   return (
     <DropdownMenu>
@@ -31,7 +40,7 @@ export function RoleSwitcher() {
         <Button variant="outline" size="sm" className="gap-2 bg-transparent">
           {currentRole && <currentRole.icon className="w-4 h-4" />}
           <Badge variant={currentRole?.color as any} className="text-xs">
-            {getRoleName(user?.role || "asistente")}
+            {getRoleName(normalizedRole || "asistente")}
           </Badge>
           <ChevronDown className="w-4 h-4" />
         </Button>

@@ -29,7 +29,10 @@ export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: Sidebar
   const renderMenuItem = (item: MenuItem, level = 0) => {
     const isExpanded = expandedMenus.includes(item.href)
     const hasActiveSubmenu = item.submenu?.some((subItem) => subItem.href === pathname)
-
+  const normalizedRole = user?.role && typeof user.role === "object" && "name" in user.role
+    ? (user.role as { name: string }).name
+    : user?.role
+  const menuItems = normalizedRole ? getMenuByRole(normalizedRole, pathname) : []
     return (
       <div key={item.href}>
         <Button
@@ -99,21 +102,30 @@ export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: Sidebar
           <div className="flex-1">
             <h3 className="font-medium text-gray-900">{user?.name || "David Grey. H"}</h3>
             <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  user?.role === "administrador" ? "default" : user?.role === "comercio" ? "secondary" : "outline"
-                }
-                className="text-xs"
-              >
-                {getRoleName(user?.role || "asistente")}
-              </Badge>
+              {(() => {
+                const roleValue =
+                  user?.role && typeof user.role === "object" && "name" in user.role
+                    ? (user.role as { name: string }).name
+                    : user?.role;
+                return (
+                  <Badge
+                    variant={
+                      roleValue === "administrador"
+                        ? "default"
+                        : roleValue === "comercio"
+                        ? "secondary"
+                        : "outline"
+                    }
+                    className="text-xs px-2 py-1 rounded-full"
+                  >
+                    {getRoleName(roleValue || "asistente")}
+                  </Badge>
+                );
+              })()}
             </div>
           </div>
-          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
         </div>
       </div>
-
-      {/* Navigation Menu */}
       <nav className="p-4 space-y-1">
         <div className="mb-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Menú Principal</p>
@@ -126,7 +138,6 @@ export function Sidebar({ user, pathname, sidebarOpen, setSidebarOpen }: Sidebar
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-sm font-medium text-gray-700">{getRoleName(user?.role || "asistente")}</span>
             </div>
             <p className="text-xs text-gray-500">{menuItems.length} opciones disponibles</p>
           </div>

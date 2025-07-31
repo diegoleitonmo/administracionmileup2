@@ -36,17 +36,6 @@ export interface LoginCredentials {
   identifier: string // email o username
   password: string
 }
-
-export interface ConnectionTestResult {
-  success: boolean
-  status?: number
-  contentType?: string
-  error?: string
-  isHtml?: boolean
-  responsePreview?: string
-  url?: string
-}
-
 class StrapiAuthService {
   private baseURL: string
   private apiToken?: string
@@ -76,101 +65,7 @@ class StrapiAuthService {
     return headers
   }
 
-  // Test completo de conectividad
-  async testConnection(): Promise<ConnectionTestResult> {
-    const testUrls = [`${this.baseURL}`, `${this.baseURL}/api`, `${this.baseURL}/api/auth/local`]
 
-    for (const url of testUrls) {
-      try {
-        console.log(`🧪 Probando URL: ${url}`)
-
-        const response = await fetch(url, {
-          method: url.includes("/auth/local") ? "POST" : "GET",
-          headers: this.getHeaders(),
-          body: url.includes("/auth/local")
-            ? JSON.stringify({
-                identifier: "test@test.com",
-                password: "test",
-              })
-            : undefined,
-          signal: AbortSignal.timeout(10000),
-        })
-
-        const contentType = response.headers.get("content-type") || ""
-        const isJson = contentType.includes("application/json")
-        const isHtml = contentType.includes("text/html") || contentType.includes("text/plain")
-
-        let responseText = ""
-        let responsePreview = ""
-
-        try {
-          responseText = await response.text()
-          responsePreview = responseText.substring(0, 300) + (responseText.length > 300 ? "..." : "")
-        } catch (textError) {
-          console.error("❌ Error leyendo respuesta:", textError)
-        }
-
-        console.log(`📡 Respuesta de ${url}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          isJson,
-          isHtml,
-          responsePreview: responsePreview.substring(0, 100),
-        })
-
-        // Si encontramos una respuesta JSON válida (incluso con error 400), es buena señal
-        if (isJson && !isHtml) {
-          return {
-            success: true,
-            status: response.status,
-            contentType,
-            isHtml: false,
-            responsePreview,
-            url,
-          }
-        }
-
-        // Si es HTML, continuar probando otras URLs
-        if (isHtml || responseText.startsWith("<!DOCTYPE") || responseText.startsWith("<html")) {
-          console.log(`⚠️ ${url} devuelve HTML, probando siguiente URL...`)
-          continue
-        }
-
-        // Si llegamos aquí y la respuesta es ok, asumir que es válida
-        if (response.ok) {
-          return {
-            success: true,
-            status: response.status,
-            contentType,
-            responsePreview,
-            url,
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Error probando ${url}:`, error)
-        continue
-      }
-    }
-
-    // Si ninguna URL funcionó
-    return {
-      success: false,
-      error: "No se pudo conectar con ningún endpoint de Strapi",
-      responsePreview: "Todas las URLs de prueba fallaron",
-    }
-  }
-
-  // Verificar conexión básica con Strapi
-  async checkConnection(): Promise<boolean> {
-    try {
-      const testResult = await this.testConnection()
-      return testResult.success
-    } catch (error) {
-      console.error("❌ Error verificando conexión:", error)
-      return false
-    }
-  }
 
   // Verificar si la respuesta es HTML en lugar de JSON
   private async parseResponse(response: Response): Promise<any> {
@@ -290,13 +185,22 @@ class StrapiAuthService {
         try {
           console.log("🔍 Obteniendo datos completos del usuario...")
           const fullUserData = await this.getUserById(responseData.user.id)
-
+          // Normalizar el rol si es 'Authenticated'
+          if (fullUserData.role && typeof fullUserData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(fullUserData.role.name)) {
+            fullUserData.role.name = "administrador"
+            fullUserData.role.type = "administrador"
+          }
           return {
             jwt: responseData.jwt,
             user: fullUserData,
           }
         } catch (userError) {
           console.warn("⚠️ No se pudieron obtener datos completos, usando datos básicos:", userError)
+          // Normalizar el rol si es 'Authenticated'
+          if (responseData.user && responseData.user.role && typeof responseData.user.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.user.role.name)) {
+            responseData.user.role.name = "administrador"
+            responseData.user.role.type = "administrador"
+          }
           return responseData
         }
       } catch (error) {
@@ -361,6 +265,11 @@ class StrapiAuthService {
           roleName: responseData.role?.name,
         })
 
+        // Normalizar el rol si es 'Authenticated'
+        if (responseData.role && typeof responseData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)) {
+          responseData.role.name = "administrador"
+          responseData.role.type = "administrador"
+        }
         return responseData
       } catch (error) {
         console.error(`❌ Error con URL ${userUrl}:`, error)
@@ -413,6 +322,11 @@ class StrapiAuthService {
           roleName: responseData.role?.name,
         })
 
+        // Normalizar el rol si es 'Authenticated'
+        if (responseData.role && typeof responseData.role.name === "string" && ["Authenticated", "authenticated", "auth", "default"].includes(responseData.role.name)) {
+          responseData.role.name = "administrador"
+          responseData.role.type = "administrador"
+        }
         return responseData
       } catch (error) {
         console.error(`❌ Error con URL ${userUrl}:`, error)
@@ -544,24 +458,7 @@ class StrapiAuthService {
     }
   }
 
-  // Obtener información de diagnóstico
-  async getDiagnosticInfo(): Promise<any> {
-    console.log("🔍 Ejecutando diagnóstico completo...")
 
-    const testResult = await this.testConnection()
-    const config = this.getConfig()
-
-    return {
-      config,
-      connectionTest: testResult,
-      environment: {
-        nodeEnv: process.env.NODE_ENV,
-        strapiUrl: process.env.NEXT_PUBLIC_STRAPI_URL,
-        hasApiToken: !!process.env.NEXT_PUBLIC_STRAPI_API_TOKEN,
-      },
-      timestamp: new Date().toISOString(),
-    }
-  }
 }
 
 export const strapiAuth = new StrapiAuthService()
