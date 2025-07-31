@@ -46,7 +46,7 @@ class StrapiAuthService {
   // Verificar conexión con Strapi
   async checkConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseURL}/api`, {
+      const response = await fetch(`${this.baseURL}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
