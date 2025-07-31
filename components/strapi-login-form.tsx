@@ -1,15 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import { useStrapiAuth } from "@/hooks/use-strapi-auth"
+import { strapiAuth } from "@/lib/strapi-auth"
 
 interface LoginCredentials {
   identifier: string
@@ -20,10 +21,26 @@ export function StrapiLoginForm() {
   const router = useRouter()
   const { login, isLoading, error } = useStrapiAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking")
   const [credentials, setCredentials] = useState<LoginCredentials>({
     identifier: "",
     password: "",
   })
+
+  // Verificar conexión con Strapi al cargar el componente
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const isConnected = await strapiAuth.checkConnection()
+        setConnectionStatus(isConnected ? "connected" : "disconnected")
+      } catch (error) {
+        console.error("Connection check failed:", error)
+        setConnectionStatus("disconnected")
+      }
+    }
+
+    checkConnection()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +54,8 @@ export function StrapiLoginForm() {
       console.error("Login failed:", error)
     }
   }
+
+  const config = strapiAuth.getConfig()
 
   return (
     <Card className="w-full shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
@@ -59,9 +78,56 @@ export function StrapiLoginForm() {
             Ingresa tus credenciales para acceder al sistema
           </CardDescription>
         </div>
+
+        {/* Estado de conexión */}
+        <div className="flex items-center justify-center gap-2 text-sm">
+          {connectionStatus === "checking" && (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+              <span className="text-gray-500">Verificando conexión...</span>
+            </>
+          )}
+          {connectionStatus === "connected" && (
+            <>
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span className="text-green-600">Conectado a Strapi</span>
+            </>
+          )}
+          {connectionStatus === "disconnected" && (
+            <>
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-red-600">Sin conexión a Strapi</span>
+            </>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Información de configuración en desarrollo */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
+            <div>
+              <strong>URL:</strong> {config.baseURL}
+            </div>
+            <div>
+              <strong>API Token:</strong> {config.apiToken}
+            </div>
+            <div>
+              <strong>Estado:</strong> {connectionStatus}
+            </div>
+          </div>
+        )}
+
+        {/* Alerta de conexión */}
+        {connectionStatus === "disconnected" && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-700 text-sm">
+              No se puede conectar con Strapi. Verifica que esté ejecutándose en {config.baseURL}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-2">
@@ -123,6 +189,7 @@ export function StrapiLoginForm() {
           {/* Error Message */}
           {error && (
             <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
             </Alert>
           )}
@@ -131,7 +198,7 @@ export function StrapiLoginForm() {
           <Button
             type="submit"
             className="w-full h-11 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium shadow-lg"
-            disabled={isLoading}
+            disabled={isLoading || connectionStatus === "disconnected"}
           >
             {isLoading ? (
               <>
@@ -167,6 +234,7 @@ export function StrapiLoginForm() {
                   password: "Seguridad2025*.",
                 })
               }
+              disabled={connectionStatus === "disconnected"}
             >
               Usar credenciales de prueba
             </Button>

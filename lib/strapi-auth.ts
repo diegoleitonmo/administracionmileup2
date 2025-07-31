@@ -43,9 +43,38 @@ class StrapiAuthService {
     this.baseURL = baseURL
   }
 
+  // Verificar conexión con Strapi
+  async checkConnection(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseURL}/api`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      return response.ok
+    } catch (error) {
+      console.error("Strapi connection error:", error)
+      return false
+    }
+  }
+
   // Login con Strapi
   async login(credentials: LoginCredentials): Promise<StrapiAuthResponse> {
     try {
+      // Verificar conexión primero
+      const isConnected = await this.checkConnection()
+      if (!isConnected) {
+        throw new Error(
+          "No se puede conectar con el servidor Strapi. Verifica que esté ejecutándose en " + this.baseURL,
+        )
+      }
+
+      console.log("Intentando login con:", {
+        url: `${this.baseURL}/api/auth/local`,
+        identifier: credentials.identifier,
+      })
+
       const response = await fetch(`${this.baseURL}/api/auth/local`, {
         method: "POST",
         headers: {
@@ -54,15 +83,39 @@ class StrapiAuthService {
         body: JSON.stringify(credentials),
       })
 
+      console.log("Response status:", response.status)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || "Error de autenticación")
+        const errorData = await response.json().catch(() => ({
+          error: { message: `Error HTTP ${response.status}: ${response.statusText}` },
+        }))
+
+        console.error("Login error response:", errorData)
+
+        // Mensajes de error más específicos
+        if (response.status === 400) {
+          throw new Error("Credenciales inválidas. Verifica tu email y contraseña.")
+        } else if (response.status === 429) {
+          throw new Error("Demasiados intentos de login. Espera unos minutos.")
+        } else if (response.status >= 500) {
+          throw new Error("Error del servidor. Verifica que Strapi esté funcionando correctamente.")
+        }
+
+        throw new Error(errorData.error?.message || `Error de autenticación (${response.status})`)
       }
 
       const data: StrapiAuthResponse = await response.json()
+      console.log("Login successful:", { userId: data.user.id, email: data.user.email })
+
       return data
     } catch (error) {
       console.error("Login Error:", error)
+
+      // Manejar errores de red
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Error de conexión. Verifica que Strapi esté ejecutándose en " + this.baseURL)
+      }
+
       throw error
     }
   }
@@ -79,7 +132,9 @@ class StrapiAuthService {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({
+          error: { message: `Error HTTP ${response.status}` },
+        }))
         throw new Error(errorData.error?.message || "Error al obtener usuario")
       }
 
@@ -103,7 +158,9 @@ class StrapiAuthService {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({
+          error: { message: `Error HTTP ${response.status}` },
+        }))
         throw new Error(errorData.error?.message || "Error al obtener usuarios")
       }
 
@@ -127,7 +184,9 @@ class StrapiAuthService {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({
+          error: { message: `Error HTTP ${response.status}` },
+        }))
         throw new Error(errorData.error?.message || "Error al obtener usuario")
       }
 
@@ -191,6 +250,17 @@ class StrapiAuthService {
       }
     }
     return null
+  }
+
+  // Obtener información de configuración
+  getConfig() {
+    return {
+      baseURL: this.baseURL,
+      hasApiToken: !!process.env.NEXT_PUBLIC_STRAPI_API_TOKEN,
+      apiToken: process.env.NEXT_PUBLIC_STRAPI_API_TOKEN
+        ? process.env.NEXT_PUBLIC_STRAPI_API_TOKEN.substring(0, 10) + "..."
+        : "No configurado",
+    }
   }
 }
 
