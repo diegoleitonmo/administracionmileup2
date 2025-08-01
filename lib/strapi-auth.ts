@@ -118,25 +118,29 @@ class StrapiAuthService {
         responsePreview: responseText.substring(0, 300),
         url: this.baseURL,
       }
-    } catch (error) {
-      console.error("❌ Error de conexión:", error)
+    }catch (error: unknown) {
+  console.error("❌ Error de conexión:", error)
 
-      let errorMessage = "Error de conexión desconocido"
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        errorMessage = `No se puede conectar con ${this.baseURL}. Verifica que Strapi esté ejecutándose.`
-      } else if (error.name === "AbortError") {
-        errorMessage = "Timeout: El servidor tardó demasiado en responder."
-      } else if (error instanceof Error) {
-        errorMessage = error.message
-      }
+  let errorMessage = "Error de conexión desconocido"
 
-      return {
-        success: false,
-        error: errorMessage,
-        responsePreview: `Error: ${errorMessage}`,
-        url: this.baseURL,
-      }
+  if (error instanceof TypeError && error.message.includes("fetch")) {
+    errorMessage = `No se puede conectar con ${this.baseURL}. Verifica que Strapi esté ejecutándose.`
+  } else if (error instanceof Error) {
+    if (error.name === "AbortError") {
+      errorMessage = "Timeout: El servidor tardó demasiado en responder."
+    } else {
+      errorMessage = error.message
     }
+  }
+
+  return {
+    success: false,
+    error: errorMessage,
+    responsePreview: `Error: ${errorMessage}`,
+    url: this.baseURL,
+  }
+}
+
   }
 
   // Verificar si la respuesta es HTML en lugar de JSON

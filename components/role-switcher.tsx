@@ -36,15 +36,7 @@ export function RoleSwitcher() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          {currentRole && <currentRole.icon className="w-4 h-4" />}
-          <Badge variant={currentRole?.color as any} className="text-xs">
-            {getRoleName(normalizedRole || "asistente")}
-          </Badge>
-          <ChevronDown className="w-4 h-4" />
-        </Button>
-      </DropdownMenuTrigger>
+   
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>Cambiar Rol (Demo)</DropdownMenuLabel>
         <DropdownMenuSeparator />

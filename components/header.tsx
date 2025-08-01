@@ -16,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,19 +55,16 @@ export function Header({
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between fixed top-0 left-0 right-0 z-50">
       {/* Left Section */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 3h18v4H3V3zm0 6h18v4H3V9zm0 6h18v4H3v-4z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-purple-600">Purple</span>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          <Menu className="w-4 h-4" />
-        </Button>
-      </div>
+  <div className="flex items-center gap-2">
+      <Image
+        src="/mileupLogo.png"
+        alt="MileUp Logo"
+        width={90}   // Ajusta el tamaño según necesites
+        height={90}
+        className="rounded-md"
+        priority
+      />
+    </div>
 
       {/* Center Section - Search */}
       <div className="flex-1 max-w-md mx-8">
@@ -101,7 +100,7 @@ export function Header({
                     ? user.name.join(" ")
                     : "Sin usuario"
                 }</span>
-                <span className="text-xs text-gray-500">{getRoleName(roleToShow)}</span>
+                <span className="text-xs text-gray-500">{user.role}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </Button>
@@ -117,7 +116,7 @@ export function Header({
                     : "David Greymaax"
                 }</p>
                 <p className="text-xs text-gray-500">{user?.email || "david.grey@company.com"}</p>
-                <p className="text-xs text-purple-600 font-medium">{getRoleName(roleToShow)}</p>
+                <p className="text-xs text-purple-600 font-medium">{user.role}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -138,22 +137,14 @@ export function Header({
         </DropdownMenu>
 
         <div className="flex items-center gap-1 ml-4">
-          <Button variant="ghost" size="sm">
-            <Maximize2 className="w-4 h-4 text-gray-500" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Mail className="w-4 h-4 text-gray-500" />
-          </Button>
+         
+         
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="w-4 h-4 text-gray-500" />
             <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
           </Button>
-          <Button variant="ghost" size="sm">
-            <Power className="w-4 h-4 text-gray-500" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <MoreHorizontal className="w-4 h-4 text-gray-500" />
-          </Button>
+        
+        
         </div>
       </div>
     </header>

@@ -1,3 +1,4 @@
+"use client"
 import { AdminLayout } from "@/components/dashboard-layout"
 import { DomiciliariosTable } from "@/components/domiciliarios-table"
 import { Users, UserCheck, UserX, Bike } from "lucide-react"
