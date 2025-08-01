@@ -17,163 +17,96 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Eye,
-  MoreHorizontal,
+  Menu,
   Phone,
   MapPin,
   Clock,
-  Search,
   Filter,
   RefreshCw,
-  CheckCircle,
   XCircle,
-  AlertCircle,
 } from "lucide-react"
 
-interface Servicio {
-  id: string
-  comercio: string
-  estado: "pendiente" | "en_proceso" | "en_camino" | "entregado" | "cancelado"
-  direccion: string
-  fecha: string
-  domiciliario: string
-  tiempoRestante: number // en minutos
-  tiempoTotal: number // en minutos
-}
-
-// Datos de ejemplo
-const serviciosData: Servicio[] = [
-  {
-    id: "SRV-001",
-    comercio: "Pizza Palace",
-    estado: "en_camino",
-    direccion: "Calle 123 #45-67, Bogotá",
-    fecha: "2024-01-15 14:30",
-    domiciliario: "Carlos Rodríguez",
-    tiempoRestante: 12,
-    tiempoTotal: 35,
-  },
-  {
-    id: "SRV-002",
-    comercio: "Burger King",
-    estado: "en_proceso",
-    direccion: "Carrera 15 #32-18, Medellín",
-    fecha: "2024-01-15 14:45",
-    domiciliario: "Ana García",
-    tiempoRestante: 25,
-    tiempoTotal: 40,
-  },
-  {
-    id: "SRV-003",
-    comercio: "Sushi Express",
-    estado: "pendiente",
-    direccion: "Avenida 68 #12-34, Cali",
-    fecha: "2024-01-15 15:00",
-    domiciliario: "Miguel Torres",
-    tiempoRestante: 45,
-    tiempoTotal: 45,
-  },
-  {
-    id: "SRV-004",
-    comercio: "Café Central",
-    estado: "entregado",
-    direccion: "Calle 85 #11-23, Barranquilla",
-    fecha: "2024-01-15 13:15",
-    domiciliario: "Laura Martínez",
-    tiempoRestante: 0,
-    tiempoTotal: 28,
-  },
-  {
-    id: "SRV-005",
-    comercio: "Tacos Locos",
-    estado: "cancelado",
-    direccion: "Carrera 7 #45-89, Cartagena",
-    fecha: "2024-01-15 12:30",
-    domiciliario: "Pedro Sánchez",
-    tiempoRestante: 0,
-    tiempoTotal: 15,
-  },
-]
-
-const estadoConfig = {
-  pendiente: {
-    label: "Pendiente",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    icon: Clock,
-  },
-  en_proceso: {
-    label: "En Proceso",
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-    icon: AlertCircle,
-  },
-  en_camino: {
-    label: "En Camino",
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-    icon: MapPin,
-  },
-  entregado: {
-    label: "Entregado",
-    color: "bg-green-100 text-green-800 border-green-200",
-    icon: CheckCircle,
-  },
-  cancelado: {
-    label: "Cancelado",
-    color: "bg-red-100 text-red-800 border-red-200",
-    icon: XCircle,
-  },
-}
-
-function CountdownTimer({ tiempoRestante }: { tiempoRestante: number }) {
-  const [tiempo, setTiempo] = useState(tiempoRestante)
+// Celda de cuenta regresiva o tiempo de asignación
+function CountdownCell({ servicio }: { servicio: any }) {
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (tiempo <= 0) return
+    if (!servicio.fechaAsignado) {
+      const interval = setInterval(() => setNow(Date.now()), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [servicio.fechaAsignado]);
 
-    const interval = setInterval(() => {
-      setTiempo((prev) => Math.max(0, prev - 1))
-    }, 60000) // Actualizar cada minuto
+  const formatTime = (diff: number) => {
+    const min = Math.floor(diff / 60000);
+    const sec = Math.floor((diff % 60000) / 1000);
+    return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
 
-    return () => clearInterval(interval)
-  }, [tiempo])
-
-  const formatTime = (minutos: number) => {
-    const horas = Math.floor(minutos / 60)
-    const mins = minutos % 60
-    return horas > 0 ? `${horas}h ${mins}m` : `${mins}m`
-  }
-
-  if (tiempo <= 0) {
-    return <span className="text-gray-500">--</span>
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <Clock className="w-3 h-3 text-orange-500" />
-      <span className={`text-sm font-medium ${tiempo <= 5 ? "text-red-600" : "text-orange-600"}`}>
-        {formatTime(tiempo)}
+  // Si aún no está asignado, mostrar reloj digital naranja tipo "mm:ss"
+  if (!servicio.fechaAsignado) {
+    const start = new Date(servicio.fechaSolicitud).getTime();
+    const diff = Math.max(0, now - start);
+    return (
+      <span className="font-mono text-orange-500 bg-black px-2 py-1 rounded text-base shadow-sm inline-flex items-center gap-1">
+        <Clock className="inline-block w-4 h-4 text-orange-400 mr-1" />
+        {formatTime(diff)}
       </span>
-    </div>
-  )
+    );
+  } else {
+    // Si ya está asignado, mostrar el formato actual en verde
+    const start = new Date(servicio.fechaSolicitud).getTime();
+    const end = new Date(servicio.fechaAsignado).getTime();
+    const diff = Math.max(0, end - start);
+    return (
+      <span className="font-mono text-green-600">
+        {formatTime(diff)}
+      </span>
+    );
+  }
 }
 
-export function SeguimientoServiciosTable() {
-  const [servicios, setServicios] = useState<Servicio[]>(serviciosData)
-  const [filtroEstado, setFiltroEstado] = useState<string>("todos")
-  const [busqueda, setBusqueda] = useState("")
+export default function ListaServicios({
+  serviciosFiltrados = [],
+  estadoConfig = {},
+  busqueda = "",
+  setBusqueda = () => {},
+  filtroEstado = "todos",
+  setFiltroEstado = () => {},
+  onRefresh = () => {},
+  loading = false,
+}: any) {
+  // Validar que serviciosFiltrados sea un array
+  const servicios = Array.isArray(serviciosFiltrados) ? serviciosFiltrados : [];
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [nextUpdateIn, setNextUpdateIn] = useState<number>(180); // segundos hasta la próxima actualización
 
-  const serviciosFiltrados = servicios.filter((servicio) => {
-    const matchEstado = filtroEstado === "todos" || servicio.estado === filtroEstado
-    const matchBusqueda =
-      servicio.id.toLowerCase().includes(busqueda.toLowerCase()) ||
-      servicio.comercio.toLowerCase().includes(busqueda.toLowerCase()) ||
-      servicio.domiciliario.toLowerCase().includes(busqueda.toLowerCase())
+  // Reloj de cuenta regresiva para la próxima actualización
+  useEffect(() => {
+    setNextUpdateIn(180);
+    const tick = setInterval(() => {
+      setNextUpdateIn(prev => {
+        if (prev <= 1) return 180;
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [lastUpdate]);
 
-    return matchEstado && matchBusqueda
-  })
+  // Actualización automática cada 3 minutos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onRefresh();
+      setLastUpdate(new Date());
+    }, 180000); // 3 minutos
+    return () => clearInterval(interval);
+  }, [onRefresh]);
 
+  // Actualizar lastUpdate cuando se refresca manualmente
   const handleRefresh = () => {
-    // Simular actualización de datos
-    console.log("Actualizando datos...")
-  }
+    onRefresh();
+    setLastUpdate(new Date());
+  };
 
   return (
     <Card>
@@ -181,26 +114,40 @@ export function SeguimientoServiciosTable() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Lista de Servicios</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">{serviciosFiltrados.length} servicios encontrados</p>
+            <p className="text-sm text-gray-600 mt-1">{servicios.length} servicios encontrados</p>
           </div>
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Actualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleRefresh}
+              size="sm"
+              disabled={loading}
+              className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm transition-colors duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {loading ? "Actualizando..." : "Actualizar"}
+            </Button>
+            <span
+              className="text-xs px-2 py-1 rounded bg-gray-100 border border-gray-200 text-gray-700 font-mono shadow-sm whitespace-nowrap"
+              title={`Actualizado el ${lastUpdate.toLocaleDateString()} a las ${lastUpdate.toLocaleTimeString()}`}
+            >
+              {`Actualizado: ${lastUpdate.toLocaleTimeString()}`}
+            </span>
+            <span
+              className="text-xs px-2 py-1 rounded bg-black text-green-400 font-mono shadow-sm whitespace-nowrap flex items-center gap-1"
+              title="Tiempo para la siguiente actualización automática"
+            >
+              <Clock className="inline-block w-4 h-4 text-green-400 mr-1" />
+              {`${String(Math.floor(nextUpdateIn / 60)).padStart(2, "0")}:${String(nextUpdateIn % 60).padStart(2, "0")}`}
+            </span>
+          </div>
         </div>
-
-        {/* Filtros */}
         <div className="flex items-center gap-4 mt-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Buscar por ID, comercio o domiciliario..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
+          <Input
+            placeholder="Buscar por ID, comercio o domiciliario..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="pl-10"
+          />
           <Select value={filtroEstado} onValueChange={setFiltroEstado}>
             <SelectTrigger className="w-48">
               <Filter className="w-4 h-4 mr-2" />
@@ -209,15 +156,16 @@ export function SeguimientoServiciosTable() {
             <SelectContent>
               <SelectItem value="todos">Todos los estados</SelectItem>
               <SelectItem value="pendiente">Pendiente</SelectItem>
-              <SelectItem value="en_proceso">En Proceso</SelectItem>
-              <SelectItem value="en_camino">En Camino</SelectItem>
+              <SelectItem value="asignado">Asignado</SelectItem>
+              <SelectItem value="llegada_comercio">Llegada a comercio</SelectItem>
+              <SelectItem value="recibi_paquete">Recibí paquete</SelectItem>
               <SelectItem value="entregado">Entregado</SelectItem>
               <SelectItem value="cancelado">Cancelado</SelectItem>
+              <SelectItem value="eliminado">Eliminado</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </CardHeader>
-
       <CardContent>
         <div className="rounded-md border">
           <Table>
@@ -235,16 +183,18 @@ export function SeguimientoServiciosTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {serviciosFiltrados.map((servicio) => {
-                const EstadoIcon = estadoConfig[servicio.estado].icon
+              {servicios.map((servicio: any) => {
+                const estadoKey = (servicio.estado || "").replace(/\s+/g, "_")
+                const EstadoIcon = estadoConfig[estadoKey]?.icon || Clock
+
                 return (
                   <TableRow key={servicio.id}>
                     <TableCell className="font-medium">{servicio.id}</TableCell>
-                    <TableCell>{servicio.comercio}</TableCell>
+                    <TableCell>{servicio.comercio?.nombre || ""}</TableCell>
                     <TableCell>
-                      <Badge className={`${estadoConfig[servicio.estado].color} border`}>
+                      <Badge className={`${estadoConfig[estadoKey]?.color || ""} border`}>
                         <EstadoIcon className="w-3 h-3 mr-1" />
-                        {estadoConfig[servicio.estado].label}
+                        {estadoConfig[estadoKey]?.label || servicio.estado}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs">
@@ -253,19 +203,37 @@ export function SeguimientoServiciosTable() {
                         <span className="truncate text-sm">{servicio.direccion}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">{servicio.fecha}</TableCell>
-                    <TableCell>{servicio.domiciliario}</TableCell>
-                    <TableCell>
-                      <CountdownTimer tiempoRestante={servicio.tiempoRestante} />
+                    <TableCell className="text-sm text-gray-600">
+                      {servicio.fechaSolicitud ? new Date(servicio.fechaSolicitud).toLocaleString() : ""}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium">{servicio.tiempoTotal}m</span>
+                      {servicio.colaborador ? `${servicio.colaborador.nombre} ${servicio.colaborador.apellido || ""}` : ""}
+                    </TableCell>
+                    <TableCell>
+                      <CountdownCell servicio={servicio} />
+                    </TableCell>
+                    <TableCell>
+                      {servicio.fechaSolicitud && servicio.fechaEntrega ? (() => {
+                        const diffMs = new Date(servicio.fechaEntrega).getTime() - new Date(servicio.fechaSolicitud).getTime();
+                        const min = Math.floor(diffMs / 60000);
+                        const sec = Math.floor((diffMs % 60000) / 1000);
+                        let color = "text-green-600";
+                        if (min > 20) color = "text-red-600";
+                        else if (min > 15) color = "text-yellow-600";
+                        return (
+                          <span className={`text-sm font-bold font-mono ${color}`}>
+                            {min.toString().padStart(2, "0")}:{sec.toString().padStart(2, "0")}
+                          </span>
+                        );
+                      })() : (
+                        <span className="text-sm font-medium">--</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Acciones">
+                            <Menu className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -296,8 +264,7 @@ export function SeguimientoServiciosTable() {
             </TableBody>
           </Table>
         </div>
-
-        {serviciosFiltrados.length === 0 && (
+        {servicios.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-500">No se encontraron servicios con los filtros aplicados</p>
           </div>

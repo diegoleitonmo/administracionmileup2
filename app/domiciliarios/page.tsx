@@ -1,6 +1,8 @@
 "use client"
 import { AdminLayout } from "@/components/dashboard-layout"
 import { DomiciliariosTable } from "@/components/domiciliarios-table"
+import { domiciliariosService, ColaboradorStrapi } from "@/services/domiciliarios.service"
+import { Domiciliario } from "@/components/domiciliarios-table"
 import { Users, UserCheck, UserX, Bike } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEffect, useState } from "react"
@@ -9,6 +11,54 @@ import { strapiAuth } from "@/lib/strapi-auth"
 import { AuthGuard } from "@/components/auth-guard"
 
 export default function DomiciliariosPage() {
+  const [domiciliarios, setDomiciliarios] = useState<Domiciliario[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Mapeo helper
+  const mapColabToDomiciliario = (colab: ColaboradorStrapi): Domiciliario => {
+    const validTransportes = ["moto", "bicicleta", "carro", "a_pie"] as const;
+    let transporte: Domiciliario["transporte"] = "moto";
+    if (validTransportes.includes(colab.tipotransporte as any)) {
+      transporte = colab.tipotransporte as Domiciliario["transporte"];
+    } else if (colab.tipotransporte?.toLowerCase().includes("bici")) {
+      transporte = "bicicleta";
+    } else if (colab.tipotransporte?.toLowerCase().includes("carro")) {
+      transporte = "carro";
+    } else if (colab.tipotransporte?.toLowerCase().includes("pie")) {
+      transporte = "a_pie";
+    }
+    const estado: Domiciliario["estado"] = colab.Activo ? "activo" : "inactivo";
+    const disponible: Domiciliario["disponible"] = colab.disponibilidad ? "disponible" : "desconectado";
+    return {
+      id: colab.id.toString(),
+      nombre: `${colab.nombre} ${colab.apellido}`,
+      telefono: colab.telefono,
+      ciudad: colab.ciudad?.nombre || "",
+      transporte,
+      identificacion: colab.numeroIdentificacion || "sin dato",
+      correo: colab.correoElectronico || "sin dato",
+      estado,
+      disponible,
+      avatar: undefined,
+      fechaRegistro: colab.createdAt?.split("T")[0] || "",
+      serviciosCompletados: 0,
+      calificacion: 0,
+    }
+  }
+
+  const fetchDomiciliarios = async () => {
+    setLoading(true)
+    try {
+      const data = await domiciliariosService.getColaboradores()
+      setDomiciliarios((data.data as ColaboradorStrapi[]).map(mapColabToDomiciliario))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDomiciliarios()
+  }, [])
   const router = useRouter()
   const [isAuth, setIsAuth] = useState<null | boolean>(null)
   useEffect(() => {
@@ -24,16 +74,23 @@ export default function DomiciliariosPage() {
     checkAuth()
   }, [router])
   if (isAuth === null) {
-    return <div className="p-10 text-center text-lg">Verificando autenticación...</div>
+    return <div className="p-10 text-center text-lg">Cargando...</div>
   }
   if (!isAuth) {
     return null
   }
 
+  // Stats
+  const total = domiciliarios.length
+  const disponibles = domiciliarios.filter(d => d.disponible === "disponible").length
+  // No hay campo "en servicio" real, así que lo dejamos en 0 o puedes ajustar la lógica si tienes ese dato
+  const enServicio = 0
+  const noDisponibles = domiciliarios.filter(d => d.disponible === "desconectado").length
+
   return (
     <AuthGuard>
       <AdminLayout>
-        <div className="p-6 space-y-6">
+        <div className="pt-10 px-2 md:px-1 lg:px-2 space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -55,7 +112,7 @@ export default function DomiciliariosPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">28</div>
+                <div className="text-2xl font-bold text-purple-600">{loading ? "..." : total}</div>
                 <p className="text-xs text-muted-foreground">Registrados</p>
               </CardContent>
             </Card>
@@ -66,7 +123,7 @@ export default function DomiciliariosPage() {
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">18</div>
+                <div className="text-2xl font-bold text-green-600">{loading ? "..." : disponibles}</div>
                 <p className="text-xs text-muted-foreground">En línea ahora</p>
               </CardContent>
             </Card>
@@ -77,7 +134,7 @@ export default function DomiciliariosPage() {
                 <Bike className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">8</div>
+                <div className="text-2xl font-bold text-blue-600">{loading ? "..." : enServicio}</div>
                 <p className="text-xs text-muted-foreground">Realizando entregas</p>
               </CardContent>
             </Card>
@@ -88,14 +145,14 @@ export default function DomiciliariosPage() {
                 <UserX className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">2</div>
+                <div className="text-2xl font-bold text-red-600">{loading ? "..." : noDisponibles}</div>
                 <p className="text-xs text-muted-foreground">Fuera de línea</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Table */}
-          <DomiciliariosTable />
+          <DomiciliariosTable domiciliarios={domiciliarios} loading={loading} onRefresh={fetchDomiciliarios} />
         </div>
       </AdminLayout>
     </AuthGuard>

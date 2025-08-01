@@ -92,7 +92,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       />
       <div className="flex">
         <Sidebar user={normalizedUser} pathname={pathname} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-64"}`}>{children}</main>
+        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-64"}`}>
+          <div className="w-full mx-auto mt-4 pt-8 pb-6 px-2 sm:px-4 md:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

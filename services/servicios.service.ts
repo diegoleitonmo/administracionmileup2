@@ -1,45 +1,79 @@
 "use client"
 
-import { strapi } from "@/lib/strapi"
+import { strapi, getTodayDateRange } from "@/lib/strapi"
+
+
 
 export interface ServicioStrapi {
-  id: number
-  documentId: string
-  attributes: {
-    comercio: string
-    estado: "pendiente" | "en_proceso" | "en_camino" | "entregado" | "cancelado"
-    direccion: string
-    fecha: string
-    tiempoRestante: number
-    tiempoTotal: number
-    domiciliario?: {
-      data?: {
-        id: number
-        documentId: string
-        attributes: {
-          nombre: string
-          telefono: string
-        }
-      }
-    }
-    cliente?: {
-      data?: {
-        id: number
-        documentId: string
-        attributes: {
-          nombre: string
-          telefono: string
-        }
-      }
-    }
-    createdAt: string
-    updatedAt: string
-    publishedAt: string
-  }
+  id: number;
+  documentId: string;
+  direccion: string;
+  estado: "pendiente" | "asignado" | "cancelado" | "entregado" | "llegada comercio" | "recibí paquete" | "eliminado";
+  fechaSolicitud: string;
+  fechaAsignado?: string | null;
+  observaciones?: string | null;
+  fechaCancelacion?: string | null;
+  fechaLlegadaComercio?: string | null;
+  fechaRecibidoPaquete?: string | null;
+  fechaEntrega?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
+  liquidado: boolean;
+  fechaLiquidacion?: string | null;
+  locacion?: any;
+  comercio: {
+    id: number;
+    documentId: string;
+    nombre: string;
+    direccion: string;
+    telefono: string;
+    nit: string;
+    esta_activo: boolean;
+    createdAt: string;
+    updatedAt: string;
+    publishedAt: string;
+    web?: string | null;
+    url?: string | null;
+    placeid?: string | null;
+    longitud?: string | null;
+    latitud?: string | null;
+  };
+  colaborador?: {
+    id: number;
+    documentId: string;
+    nombre: string;
+    apellido: string;
+    direccion?: string | null;
+    telefono: string;
+    tipotransporte?: string | null;
+    tipoIdentificacion?: string | null;
+    numeroIdentificacion?: string | null;
+    correoElectronico?: string | null;
+    datoBancario?: string | null;
+    Activo: boolean;
+    disponibilidad: boolean;
+    createdAt: string;
+    updatedAt: string;
+    publishedAt: string;
+  };
+  tipo?: {
+    id: number;
+    documentId: string;
+    descripcion: string;
+    padreId: number;
+    vigente: boolean;
+    createdAt: string;
+    updatedAt: string;
+    publishedAt: string;
+  };
+  datos_adicionales_servicio?: any;
+
+
 }
 
 export class ServiciosService {
-  private endpoint = "servicios"
+  private endpoint = "servicios?populate=*"
 
   // Obtener todos los servicios (usando API Token)
   async getAll(options?: {
@@ -50,12 +84,27 @@ export class ServiciosService {
     return strapi.get<ServicioStrapi[]>(
       this.endpoint,
       {
-        populate: ["domiciliario", "cliente"],
         ...options,
       },
       false, // Usar API Token
     )
   }
+
+  // Obtener servicios solo del día de hoy (por createdAt)
+  async getHoy(options?: {
+    filters?: Record<string, any>;
+    sort?: string[];
+    pagination?: { page?: number; pageSize?: number };
+  }): Promise<any> {
+    return this.getAll({
+      ...options,
+      filters: {
+        ...(options?.filters || {}),
+        ...getTodayDateRange("createdAt"),
+      },
+    });
+  }
+
 
   // Obtener un servicio por ID (usando API Token)
   async getById(id: string | number) {
@@ -68,8 +117,9 @@ export class ServiciosService {
     )
   }
 
+
   // Crear nuevo servicio (usando API Token)
-  async create(data: Omit<ServicioStrapi["attributes"], "createdAt" | "updatedAt" | "publishedAt">) {
+  async create(data: Omit<ServicioStrapi, "id" | "createdAt" | "updatedAt" | "publishedAt">) {
     return strapi.post<ServicioStrapi>(
       this.endpoint,
       data,
@@ -77,11 +127,12 @@ export class ServiciosService {
         populate: ["domiciliario", "cliente"],
       },
       false, // Usar API Token
-    )
+    );
   }
 
+
   // Actualizar servicio (usando API Token)
-  async update(id: string | number, data: Partial<ServicioStrapi["attributes"]>) {
+  async update(id: string | number, data: Partial<Omit<ServicioStrapi, "id">>) {
     return strapi.put<ServicioStrapi>(
       this.endpoint,
       id,
@@ -90,7 +141,7 @@ export class ServiciosService {
         populate: ["domiciliario", "cliente"],
       },
       false, // Usar API Token
-    )
+    );
   }
 
   // Eliminar servicio (usando API Token)
@@ -98,15 +149,15 @@ export class ServiciosService {
     return strapi.delete(this.endpoint, id, false) // Usar API Token
   }
 
-  // Filtrar por estado
-  async getByEstado(estado: "pendiente" | "en_proceso" | "en_camino" | "entregado" | "cancelado") {
+  // Filtrar por estado (ajustado a los nuevos estados)
+  async getByEstado(estado: ServicioStrapi["estado"]) {
     return this.getAll({
       filters: {
         estado: {
           $eq: estado,
         },
       },
-    })
+    });
   }
 
   // Filtrar por domiciliario
@@ -122,31 +173,31 @@ export class ServiciosService {
     })
   }
 
-  // Servicios activos (no entregados ni cancelados)
+  // Servicios activos (no entregados, cancelados ni eliminados)
   async getActivos() {
     return this.getAll({
       filters: {
         estado: {
-          $notIn: ["entregado", "cancelado"],
+          $notIn: ["entregado", "cancelado", "eliminado"],
         },
       },
       sort: ["createdAt:desc"],
-    })
+    });
   }
 
-  // Cambiar estado del servicio
+  // Cambiar estado del servicio (ajustado a los nuevos estados)
   async cambiarEstado(
     id: string | number,
-    estado: "pendiente" | "en_proceso" | "en_camino" | "entregado" | "cancelado",
+    estado: ServicioStrapi["estado"],
   ) {
-    return this.update(id, { estado })
+    return this.update(id, { estado });
   }
 
-  // Asignar domiciliario
-  async asignarDomiciliario(servicioId: string | number, domiciliarioId: number) {
+  // Asignar domiciliario (colaborador)
+  async asignarDomiciliario(servicioId: string | number, colaboradorId: number) {
     return this.update(servicioId, {
-      domiciliario: domiciliarioId as any,
-      estado: "en_proceso",
+      colaborador: colaboradorId as any,
+      estado: "asignado",
     })
   }
 

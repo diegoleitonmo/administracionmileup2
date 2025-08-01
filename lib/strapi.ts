@@ -1,4 +1,17 @@
+
 "use client"
+// Helper para obtener el rango de fechas de hoy en formato ISO (usado para filtros Strapi)
+export function getTodayDateRange(field: string = "createdAt") {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+  return {
+    [`${field}`]: {
+      $gte: start.toISOString(),
+      $lte: end.toISOString(),
+    },
+  }
+}
 
 // Configuración base de Strapi
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337"
@@ -73,6 +86,11 @@ class StrapiService {
   }
 
   // GET - Obtener datos
+  /**
+   * GET - Obtener datos
+   * Para filtrar solo los registros del día de hoy:
+   *   filters: getTodayDateRange("createdAt")
+   */
   async get<T>(
     endpoint: string,
     params?: {

@@ -55,7 +55,13 @@ export function Sidebar({ user, pathname, sidebarOpen }: SidebarProps) {
             level > 0 && "ml-4 h-8",
             hasActiveSubmenu ? "bg-purple-50 text-purple-600 hover:bg-purple-50" : "text-gray-600 hover:bg-gray-50"
           )}
-          onClick={() => (item.children && item.children.length > 0 ? toggleSubmenu(item.href) : undefined)}
+          onClick={() => {
+            if (item.children && item.children.length > 0) {
+              toggleSubmenu(item.href)
+            } else {
+              window.location.assign(item.href)
+            }
+          }}
         >
           <item.icon className={cn("w-4 h-4")} />
           <span className="flex-1 text-left text-sm">{item.title}</span>
@@ -73,6 +79,7 @@ export function Sidebar({ user, pathname, sidebarOpen }: SidebarProps) {
                   "w-full justify-start gap-3 h-8 text-sm",
                   subItem.href === pathname ? "bg-purple-50 text-purple-600 hover:bg-purple-50" : "text-gray-500 hover:bg-gray-50"
                 )}
+                onClick={() => window.location.assign(subItem.href)}
               >
                 <subItem.icon className="w-3 h-3" />
                 <span className="flex-1 text-left">{subItem.title}</span>
