@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
+import type { UserRole } from "@/config/menu-config"
+
 
 import {
   DropdownMenu,
@@ -48,10 +50,12 @@ export function Header({
 }: HeaderProps) {
   // Depuración: mostrar el usuario recibido
   // Normalizar el rol: si user.role es string válida, úsala; si es objeto con name, usa name; si no, usa null
-  let normalizedRole = null;
+const normalizedRole: UserRole =
+  user?.role && typeof user.role === "object" && "name" in user.role
+    ? (user.role.name as UserRole)
+    : ((user?.role as UserRole) || "asistente")
  
   // Si no hay rol válido, usar "asistente" como fallback
-  const roleToShow = normalizedRole || "asistente";
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between fixed top-0 left-0 right-0 z-50">
       {/* Left Section */}
@@ -100,7 +104,10 @@ export function Header({
                     ? user.name.join(" ")
                     : "Sin usuario"
                 }</span>
-                <span className="text-xs text-gray-500">{user.role}</span>
+                
+              <span className="text-xs text-gray-500">
+                {normalizedRole === "administrador" ? normalizedRole : "Prueba"}
+              </span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </Button>
@@ -116,7 +123,7 @@ export function Header({
                     : "David Greymaax"
                 }</p>
                 <p className="text-xs text-gray-500">{user?.email || "david.grey@company.com"}</p>
-                <p className="text-xs text-purple-600 font-medium">{user.role}</p>
+                <p className="text-xs text-purple-600 font-medium">{normalizedRole === "administrador" ? normalizedRole : "Prueba"}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
