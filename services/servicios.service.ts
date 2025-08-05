@@ -1,8 +1,6 @@
-"use client"
+"use client";
 
-import { strapi, getTodayDateRange } from "@/lib/strapi"
-
-
+import { strapi, getTodayDateRange } from "@/lib/strapi";
 
 export interface ServicioStrapi {
   id: number;
@@ -73,22 +71,56 @@ export interface ServicioStrapi {
 }
 
 export class ServiciosService {
-  private endpoint = "servicios?populate=*"
+  private endpoint = "servicios";
 
+  // Obtener servicios por colaborador, con filtros opcionales de fecha y comercio
+  async getServiciosByColaborador(
+    colaboradorId: string | number,
+    fechaInicio?: string,
+    fechaFin?: string,
+    comercioId?: string | number,
+    page?: number,
+    pageSize?: number
+  ) {
+    const filters: Record<string, any> = {};
+    // Solo agregar filtro si el id es válido y numérico
+    if (colaboradorId && !isNaN(Number(colaboradorId))) {
+      filters.colaborador = { id: { $eq: Number(colaboradorId) } };
+    }
+    if (fechaInicio && fechaFin) {
+      filters.fechaSolicitud = { $between: [fechaInicio, fechaFin] };
+    } else if (fechaInicio) {
+      filters.fechaSolicitud = { $gte: fechaInicio };
+    } else if (fechaFin) {
+      filters.fechaSolicitud = { $lte: fechaFin };
+    }
+    if (comercioId && !isNaN(Number(comercioId))) {
+      filters.comercio = { id: { $eq: Number(comercioId) } };
+    }
+    return this.getAll({
+      filters,
+      sort: ["liquidado:asc", "fechaSolicitud:desc"],
+      ...(page && pageSize ? { pagination: { page, pageSize } } : {}),
+    });
+  }
   // Obtener todos los servicios (usando API Token)
   async getAll(options?: {
-    filters?: Record<string, any>
-    sort?: string[]
-    pagination?: { page?: number; pageSize?: number }
+    filters?: Record<string, any>;
+    sort?: string | string[];
+    pagination?: { page?: number; pageSize?: number };
+    fields?: string[];
+    locale?: string;
   }) {
     return strapi.get<ServicioStrapi[]>(
       this.endpoint,
       {
+        populate: "*", // <-- fuerza populate all
         ...options,
       },
-      false, // Usar API Token
-    )
+      false
+    );
   }
+
 
   // Obtener servicios solo del día de hoy (por createdAt)
   async getHoy(options?: {
@@ -113,8 +145,8 @@ export class ServiciosService {
       {
         populate: ["domiciliario", "cliente"],
       },
-      false, // Usar API Token
-    )
+      false // Usar API Token
+    );
   }
 
 
@@ -144,6 +176,22 @@ export class ServiciosService {
     );
   }
 
+  // Liquidar servicios por documentId (usando API Token)
+  async liquidarServicios(documentIds: string[]) {
+    const promises = documentIds.map(documentId => 
+      strapi.put<ServicioStrapi>(
+        this.endpoint,
+        documentId,
+        { liquidado: true, fechaLiquidacion: new Date().toISOString() },
+        {
+        },
+        false // Usar API Token
+      )
+    );
+    
+    return Promise.all(promises);
+  }
+
   // Eliminar servicio (usando API Token)
   async delete(id: string | number) {
     return strapi.delete(this.endpoint, id, false) // Usar API Token
@@ -160,11 +208,11 @@ export class ServiciosService {
     });
   }
 
-  // Filtrar por domiciliario
+  // Filtrar por colaborador (antes domiciliario)
   async getByDomiciliario(domiciliarioId: number) {
     return this.getAll({
       filters: {
-        domiciliario: {
+        colaborador: {
           id: {
             $eq: domiciliarioId,
           },

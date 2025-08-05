@@ -46,6 +46,16 @@ export class DomiciliariosService {
       false // Usar API Token
     )
   }
+  // obtener colaborador por id
+
+async getColaboradorById(id: number, populate: string = "*") {
+  return strapi.get<ColaboradorStrapi>(
+    `colaboradors/${id}`,
+    { populate },
+    false // Usar API Token
+  )
+}
+
 }
 
 export const domiciliariosService = new DomiciliariosService()

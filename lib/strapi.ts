@@ -119,15 +119,18 @@ class StrapiService {
         }
 
         if (params.filters) {
-          Object.entries(params.filters).forEach(([key, value]) => {
-            if (typeof value === "object") {
-              Object.entries(value).forEach(([operator, operatorValue]) => {
-                url.searchParams.append(`filters[${key}][${operator}]`, String(operatorValue))
-              })
-            } else {
-              url.searchParams.append(`filters[${key}]`, String(value))
-            }
-          })
+          // Serializar filtros anidados correctamente
+          const buildFilterParams = (obj: any, prefix = "") => {
+            Object.entries(obj).forEach(([key, value]) => {
+              const paramKey = prefix ? `${prefix}[${key}]` : `filters[${key}]`;
+              if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                buildFilterParams(value, paramKey);
+              } else {
+                url.searchParams.append(paramKey, String(value));
+              }
+            });
+          };
+          buildFilterParams(params.filters);
         }
 
         if (params.sort) {

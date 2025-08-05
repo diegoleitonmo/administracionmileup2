@@ -204,9 +204,11 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                           <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Liquidar servicios 
+                          <DropdownMenuItem asChild>
+                            <a href={`/liquidacion-servicios?domiciliario=${domiciliario.id}`} className="flex items-center">
+                              <Eye className="mr-2 h-4 w-4" />
+                              Liquidar servicios
+                            </a>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Eye className="mr-2 h-4 w-4" />
