@@ -18,81 +18,64 @@ interface LoginCredentials {
 }
 
 export function StrapiLoginForm() {
-  const router = useRouter()
-  const { login } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking")
-  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const router = useRouter();
+  const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "disconnected">("checking");
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [credentials, setCredentials] = useState<LoginCredentials>({
     identifier: "",
     password: "",
-  })
+  });
 
-  // Verificar conexión con Strapi al cargar el componente
   useEffect(() => {
-    checkConnection()
-  }, [])
+    checkConnection();
+    // eslint-disable-next-line
+  }, []);
 
   const checkConnection = async () => {
-    setConnectionStatus("checking")
+    setConnectionStatus("checking");
     try {
-      console.log("🔍 Iniciando verificación de conexión...")
-
-      const diagnostics = await strapiAuth.getDiagnosticInfo()
-      setDiagnosticInfo(diagnostics)
-
-      const isConnected = diagnostics.connectionTest.success
-      setConnectionStatus(isConnected ? "connected" : "disconnected")
-
-      console.log("📊 Diagnóstico completo:", diagnostics)
+      const diagnostics = await strapiAuth.getDiagnosticInfo();
+      setDiagnosticInfo(diagnostics);
+      const isConnected = diagnostics.connectionTest.success;
+      setConnectionStatus(isConnected ? "connected" : "disconnected");
     } catch (error) {
-      let errorMsg = "Error desconocido"
-      if (typeof error === "string") errorMsg = error
-      else if (error instanceof Error) errorMsg = error.message
-      console.error("❌ Error en diagnóstico:", errorMsg)
-      setConnectionStatus("disconnected")
+      let errorMsg = "Error desconocido";
+      if (typeof error === "string") errorMsg = error;
+      else if (error instanceof Error) errorMsg = error.message;
+      setConnectionStatus("disconnected");
       setDiagnosticInfo({
         error: errorMsg,
         config: strapiAuth.getConfig(),
         timestamp: new Date().toISOString(),
-      })
+      });
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    // Validaciones básicas
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
     if (!credentials.identifier.trim()) {
-      setError("Por favor ingresa tu email")
-      setIsLoading(false)
-      return
+      setError("Por favor ingresa tu email");
+      setIsLoading(false);
+      return;
     }
-
     if (!credentials.password.trim()) {
-      setError("Por favor ingresa tu contraseña")
-      setIsLoading(false)
-      return
+      setError("Por favor ingresa tu contraseña");
+      setIsLoading(false);
+      return;
     }
-
     try {
-      console.log("🚀 Iniciando proceso de login...")
-
-      const authData = await strapiAuth.login(credentials)
-      strapiAuth.saveAuthData(authData)
-
-      // Mapear el rol de Strapi a los valores esperados (acepta variantes)
-      let mappedRole: "administrador" | "comercio" | "asistente" = "asistente"
-      const strapiRole = authData.user.role?.name?.toLowerCase()
-
-      if (strapiRole && ["administrador", "admin", "authenticated"].includes(strapiRole)) mappedRole = "administrador"
-      else if (strapiRole === "comercio") mappedRole = "comercio"
-
+      const authData = await strapiAuth.login(credentials);
+      strapiAuth.saveAuthData(authData);
+      let mappedRole: "administrador" | "comercio" | "asistente" = "asistente";
+      const strapiRole = authData.user.role?.name?.toLowerCase();
+      if (strapiRole && ["administrador", "admin", "authenticated"].includes(strapiRole)) mappedRole = "administrador";
+      else if (strapiRole === "comercio") mappedRole = "comercio";
       const user = {
         id: String(authData.user.id),
         name: authData.user.username || authData.user.email,
@@ -100,60 +83,26 @@ export function StrapiLoginForm() {
         role: mappedRole,
         avatar: `/placeholder.svg?height=40&width=40`,
         department: "",
-      }
-
-      console.log("✅ Login exitoso, datos mapeados:", {
-        strapiRole: authData.user.role?.name,
-        mappedRole,
-        userId: user.id,
-        email: user.email,
-      })
-
-      login(user, authData.jwt)
-      router.push("/")
+      };
+      login(user, authData.jwt);
+      router.push("/");
     } catch (err: any) {
-      console.error("❌ Error en login:", err)
-      setError(err.message || "Error al iniciar sesión. Inténtalo de nuevo.")
+      setError(err.message || "Error al iniciar sesión. Inténtalo de nuevo.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleUseTestCredentials = () => {
-    console.log("🧪 Usando credenciales de prueba...")
-    setCredentials({
-      identifier: "diley963@gmail.com",
-      password: "Seguridad2025*.",
-    })
-    setError("")
-  }
-
-  const config = strapiAuth.getConfig()
+  const config = strapiAuth.getConfig();
 
   return (
-    <Card className="w-full shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader className="space-y-4 pb-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-purple-100 via-white to-purple-300 py-8 px-2">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 3h18v4H3V3zm0 6h18v4H3V9zm0 6h18v4H3v-4z" />
-            </svg>
-          </div>
-          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
-            Purple
-          </span>
-        </div>
-
-        <div className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-800">Bienvenido de vuelta</CardTitle>
-          <CardDescription className="text-gray-600 mt-2">
-            Ingresa tus credenciales para acceder al sistema
-          </CardDescription>
-        </div>
+        <img src="/mileupLogo.png" alt="Mileup Logo" className="h-14 w-auto mb-4 drop-shadow-lg" />
 
         {/* Estado de conexión */}
-        <div className="flex items-center justify-center gap-2 text-sm">
+        <div className="flex items-center justify-center gap-2 mb-4">
           {connectionStatus === "checking" && (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
@@ -163,7 +112,7 @@ export function StrapiLoginForm() {
           {connectionStatus === "connected" && (
             <>
               <Wifi className="w-4 h-4 text-green-500" />
-              <span className="text-green-600">Conectado a Strapi</span>
+              <span className="text-green-600">Conectado</span>
             </>
           )}
           {connectionStatus === "disconnected" && (
@@ -176,134 +125,74 @@ export function StrapiLoginForm() {
             </>
           )}
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Información de configuración */}
-        <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold text-gray-800">Configuración:</div>
-            <Button variant="ghost" size="sm" onClick={() => setShowDiagnostics(!showDiagnostics)} className="h-6 px-2">
-              <Settings className="w-3 h-3" />
-            </Button>
-          </div>
-          <div>
-            <strong>URL:</strong> {config.baseURL}
-          </div>
-          <div>
-            <strong>API Token:</strong> {config.apiToken}
-          </div>
-          <div>
-            <strong>Estado:</strong> {connectionStatus}
-          </div>
-
-          {showDiagnostics && diagnosticInfo && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Ver diagnóstico completo</summary>
-              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-60">
-                {JSON.stringify(diagnosticInfo, null, 2)}
-              </pre>
-            </details>
-          )}
-        </div>
-
-        {/* Alerta de conexión */}
-        {connectionStatus === "disconnected" && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-red-700 text-sm">
-              <div className="space-y-2">
-                <div>No se puede conectar con Strapi en {config.baseURL}</div>
-                <div className="text-xs">
-                  <strong>Pasos para resolver:</strong>
-                  <ol className="list-decimal list-inside mt-1 space-y-1">
-                    <li>
-                      Verifica que Strapi esté ejecutándose:{" "}
-                      <code className="bg-gray-200 px-1 rounded">npm run develop</code>
-                    </li>
-                    <li>Confirma que el puerto 1337 esté disponible</li>
-                    <li>
-                      Revisa la URL en el archivo .env:{" "}
-                      <code className="bg-gray-200 px-1 rounded">NEXT_PUBLIC_STRAPI_URL</code>
-                    </li>
-                    <li>Verifica que no haya firewall bloqueando la conexión</li>
-                    <li>Confirma que el API Token esté configurado correctamente</li>
-                  </ol>
-                </div>
-                {diagnosticInfo?.connectionTest?.error && (
-                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                    <strong>Error específico:</strong> {diagnosticInfo.connectionTest.error}
-                  </div>
-                )}
-                {diagnosticInfo?.connectionTest?.responsePreview && (
-                  <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                    <strong>Respuesta del servidor:</strong>
-                    <pre className="mt-1 whitespace-pre-wrap">{diagnosticInfo.connectionTest.responsePreview}</pre>
-                  </div>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
           {/* Email */}
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="identifier" className="text-sm font-medium text-gray-700">
-              Correo Electrónico
+              Correo electrónico
             </Label>
-            <Input
-              id="identifier"
-              type="email"
-              placeholder="tu@email.com"
-              value={credentials.identifier}
-              onChange={(e) => {
-                setCredentials((prev) => ({
-                  ...prev,
-                  identifier: e.target.value,
-                }))
-                if (error) setError("")
-              }}
-              className="h-11 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-              required
-              disabled={isLoading}
-            />
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0m8 0V8a4 4 0 00-8 0v4m8 0v4a4 4 0 01-8 0v-4" /></svg>
+              </span>
+              <Input
+                id="identifier"
+                type="email"
+                placeholder="tu@email.com"
+                value={credentials.identifier}
+                onChange={(e) => {
+                  setCredentials((prev) => ({ ...prev, identifier: e.target.value }))
+                  if (error) setError("")
+                }}
+                className="h-12 pl-11 pr-3 bg-white border border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-800 placeholder-gray-400 text-base transition"
+                required
+                disabled={isLoading}
+                autoComplete="username"
+                aria-label="Correo electrónico"
+              />
+            </div>
           </div>
 
           {/* Password */}
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               Contraseña
             </Label>
-            <div className="relative">
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm0 0v2m0 4h.01" /></svg>
+              </span>
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={credentials.password}
                 onChange={(e) => {
-                  setCredentials((prev) => ({
-                    ...prev,
-                    password: e.target.value,
-                  }))
+                  setCredentials((prev) => ({ ...prev, password: e.target.value }))
                   if (error) setError("")
                 }}
-                className="h-11 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500 pr-10"
+                className="h-12 pl-11 pr-10 bg-white border border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-800 placeholder-gray-400 text-base transition"
                 required
                 disabled={isLoading}
+                autoComplete="current-password"
+                aria-label="Contraseña"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
+                className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
+                tabIndex={-1}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 {showPassword ? (
-                  <EyeOff className="w-4 h-4 text-gray-400" />
+                  <EyeOff className="w-5 h-5 text-gray-400" />
                 ) : (
-                  <Eye className="w-4 h-4 text-gray-400" />
+                  <Eye className="w-5 h-5 text-gray-400" />
                 )}
               </Button>
             </div>
@@ -316,23 +205,6 @@ export function StrapiLoginForm() {
               <AlertDescription className="text-red-700 text-sm">
                 <div className="space-y-2">
                   <div>{error}</div>
-                  {error.includes("No se puede conectar") && (
-                    <div className="text-xs">
-                      <strong>Comandos útiles:</strong>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
-                        <li>
-                          Iniciar Strapi: <code className="bg-gray-200 px-1 rounded">cd strapi && npm run develop</code>
-                        </li>
-                        <li>
-                          Verificar puerto: <code className="bg-gray-200 px-1 rounded">lsof -i :1337</code>
-                        </li>
-                        <li>
-                          Reiniciar Strapi: <code className="bg-gray-200 px-1 rounded">Ctrl+C</code> y luego{" "}
-                          <code className="bg-gray-200 px-1 rounded">npm run develop</code>
-                        </li>
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </AlertDescription>
             </Alert>
@@ -341,12 +213,12 @@ export function StrapiLoginForm() {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full h-11 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium shadow-lg"
+            className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold text-base shadow-lg transition-all duration-200 focus:ring-2 focus:ring-purple-400 focus:outline-none"
             disabled={isLoading || connectionStatus === "disconnected"}
           >
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Iniciando sesión...
               </>
             ) : (
@@ -355,49 +227,26 @@ export function StrapiLoginForm() {
           </Button>
         </form>
 
-        {/* Demo Credentials */}
-        <div className="pt-4 border-t border-gray-100">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Credenciales de prueba:</h4>
-            <div className="space-y-1 text-sm text-blue-700">
-              <p>
-                <strong>Email:</strong> diley963@gmail.com
-              </p>
-              <p>
-                <strong>Contraseña:</strong> Seguridad2025*.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3 text-blue-600 border-blue-200 hover:bg-blue-100 bg-transparent"
-              onClick={handleUseTestCredentials}
-              disabled={isLoading}
-            >
-              Usar credenciales de prueba
-            </Button>
-
-            {/* Confirmación de credenciales aplicadas */}
-            {credentials.identifier === "diley963@gmail.com" && credentials.password === "Seguridad2025*." && (
-              <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                ✅ Credenciales de prueba aplicadas
-              </div>
-            )}
-          </div>
+        {/* Enlaces de ayuda */}
+        <div className="flex flex-col items-center gap-2 mt-6 w-full">
+          <Button variant="link" className="text-sm text-purple-600 hover:text-purple-700 p-0" tabIndex={0}>
+            ¿Olvidaste tu contraseña?
+          </Button>
+          <Button variant="link" className="text-sm text-purple-600 hover:text-purple-700 p-0" tabIndex={0}>
+            ¿Necesitas ayuda?
+          </Button>
         </div>
 
-        {/* Instrucciones para configurar Strapi */}
+        {/* Instrucciones para configurar Strapi (opcional, solo si está desconectado) */}
         {connectionStatus === "disconnected" && (
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-gray-100 w-full">
             <div className="bg-yellow-50 rounded-lg p-4">
               <h4 className="text-sm font-medium text-yellow-800 mb-2">¿Primera vez usando el sistema?</h4>
               <div className="text-xs text-yellow-700 space-y-2">
                 <p>Si no tienes Strapi configurado, sigue estos pasos:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>
-                    Instala Strapi:{" "}
-                    <code className="bg-yellow-100 px-1 rounded">npx create-strapi-app@latest my-strapi</code>
+                    Instala Strapi: <code className="bg-yellow-100 px-1 rounded">npx create-strapi-app@latest my-strapi</code>
                   </li>
                   <li>
                     Navega al directorio: <code className="bg-yellow-100 px-1 rounded">cd my-strapi</code>
@@ -406,8 +255,7 @@ export function StrapiLoginForm() {
                     Inicia Strapi: <code className="bg-yellow-100 px-1 rounded">npm run develop</code>
                   </li>
                   <li>
-                    Crea un usuario administrador en{" "}
-                    <code className="bg-yellow-100 px-1 rounded">http://localhost:1337/admin</code>
+                    Crea un usuario administrador en <code className="bg-yellow-100 px-1 rounded">http://localhost:1337/admin</code>
                   </li>
                   <li>Configura el API Token en Settings → API Tokens</li>
                 </ol>
@@ -415,34 +263,7 @@ export function StrapiLoginForm() {
             </div>
           </div>
         )}
-
-        {/* Additional Options */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <Button variant="link" className="text-sm text-purple-600 hover:text-purple-700 p-0">
-            ¿Olvidaste tu contraseña?
-          </Button>
-          <Button variant="link" className="text-sm text-gray-600 hover:text-gray-700 p-0">
-            ¿Necesitas ayuda?
-          </Button>
-        </div>
-
-        {/* Debug Info en desarrollo */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="pt-4 border-t border-gray-100">
-            <details className="text-xs text-gray-500">
-              <summary className="cursor-pointer">Debug Info</summary>
-              <div className="mt-2 space-y-1">
-                <div>Estado: {isLoading ? "Cargando" : "Listo"}</div>
-                <div>Conexión: {connectionStatus}</div>
-                <div>Error: {error || "Ninguno"}</div>
-                <div>API Token: {config.hasApiToken ? "Configurado" : "No configurado"}</div>
-                <div>Diagnósticos: {showDiagnostics ? "Visibles" : "Ocultos"}</div>
-                <div>URL Strapi: {config.baseURL}</div>
-              </div>
-            </details>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+      </div>
+    </div>
+  );
 }

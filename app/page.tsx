@@ -12,9 +12,7 @@ export default function Dashboard() {
           {/* Header responsive - Mobile-first, con menú hamburguesa */}
           <div className="flex flex-col gap-2 sm:gap-0 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
-              <button className="inline-flex sm:hidden items-center justify-center p-2 rounded-lg text-purple-700 bg-white border border-gray-200 shadow-md transition hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-400" aria-label="Abrir menú">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-              </button>
+             
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2L2 7v10c0 5.55 3.84 10 9 11 1.09-.21 2.28-.71 3.33-1.36C16.67 25.29 18.91 24.79 20 24c2.16-1.21 2-6.45 2-11V7l-10-5z" />

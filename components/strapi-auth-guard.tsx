@@ -16,17 +16,21 @@ export function StrapiAuthGuard({ children }: StrapiAuthGuardProps) {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Si no está cargando y no está autenticado, redirigir a login
-    if (!isLoading && !isAuthenticated && pathname !== "/login") {
-      router.push("/login")
-    }
-    // Si está autenticado y está en login, redirigir al dashboard
-    else if (!isLoading && isAuthenticated && pathname === "/login") {
-      router.push("/")
-    }
-  }, [isAuthenticated, isLoading, router, pathname])
+    // Esperar a que termine de cargar antes de redirigir
+    if (isLoading) return
 
-  // Mostrar loading mientras se verifica la autenticación
+    // No autenticado y no está en login → enviar a login
+    if (!isAuthenticated && pathname !== "/login") {
+      router.replace("/login")
+    }
+
+    // Autenticado pero está en login → enviar al dashboard
+    if (isAuthenticated && pathname === "/login") {
+      router.replace("/")
+    }
+  }, [isAuthenticated, isLoading, pathname, router])
+
+  // Loading state mientras valida el hook
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -40,12 +44,10 @@ export function StrapiAuthGuard({ children }: StrapiAuthGuardProps) {
     )
   }
 
-  // Si no está autenticado y no está en login, no mostrar nada (se redirigirá)
-  if (!isAuthenticated && pathname !== "/login") {
-    return null
-  }
+  // No autenticado y no está en login → no mostrar nada hasta que redirija
+  if (!isAuthenticated && pathname !== "/login") return null
 
-  // Mostrar información del usuario autenticado en desarrollo
+  // Debug solo en desarrollo
   if (isAuthenticated && user && process.env.NODE_ENV === "development") {
     console.log("Usuario autenticado:", {
       id: user.id,
