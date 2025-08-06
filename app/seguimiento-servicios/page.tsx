@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo } from "react"
 import { serviciosService, ServicioStrapi } from "@/services/servicios.service"
 import { AdminLayout } from "@/components/dashboard-layout"
 import SeguimientoServiciosTable from "@/components/seguimiento-servicios-table"
-
+import { SeguimientoServiciosTableResponsive } from "@/components/seguimiento-servicios-table-responsive"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AuthGuard } from "@/components/auth-guard"
 
@@ -74,16 +74,16 @@ export default function SeguimientoServiciosPage() {
   return (
     <AuthGuard>
       <AdminLayout>
-        <div className="p-6 space-y-6">
+        <div className="p-2 sm:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Package className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow">
+                <Package className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-800">Seguimiento de Servicios</h1>
-                <p className="text-gray-600">Monitorea el estado de todos los servicios en tiempo real</p>
+                <p className="text-sm text-gray-600">Estado en tiempo real</p>
               </div>
             </div>
             <button
@@ -93,77 +93,72 @@ export default function SeguimientoServiciosPage() {
                 setSoloHoy(prev => !prev)
               }}
               disabled={loading}
-              className={`flex items-center px-3 py-1 rounded-full border-2 transition-colors duration-200 focus:outline-none ${
-                soloHoy ? "bg-purple-600 border-purple-600" : "bg-gray-200 border-gray-300"
-              } ${loading ? "opacity-60 cursor-not-allowed" : "hover:border-purple-500"}`}
+              className={`flex items-center px-3 py-2 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
+                soloHoy
+                  ? "bg-gradient-to-r from-purple-600 to-purple-700 border-purple-600 text-white"
+                  : "bg-white border-gray-300 hover:border-purple-400 text-gray-700"
+              } ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
               aria-pressed={soloHoy}
               title="Mostrar solo servicios de hoy"
             >
-              <span
-                className={`inline-block w-5 h-5 rounded-full transition-all duration-200 mr-2 ${
-                  soloHoy ? "bg-white border border-purple-600" : "bg-gray-400 border border-gray-300"
-                }`}
-                style={{ boxShadow: soloHoy ? "0 0 0 2px #a78bfa" : undefined }}
-              >
-                {soloHoy && (
-                  <svg
-                    className="w-5 h-5 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </span>
-              <span className={`text-sm font-semibold ${soloHoy ? "text-white" : "text-gray-700"}`}>
-                Solo hoy
-              </span>
+              {soloHoy ? "Solo hoy ✓" : "Ver todos"}
             </button>
           </div>
 
-          {/* Error */}
           {error && <div className="text-red-500 font-semibold">{error}</div>}
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <StatCard title="Servicios Activos" icon={<Clock />} value={loading ? "..." : activos} color="text-blue-600" footer="En proceso" />
-            <StatCard title="Completados Hoy" icon={<Package />} value={loading ? "..." : completadosHoy} color="text-green-600" footer="Hoy" />
-            <StatCard title="Domiciliarios" icon={<Users />} value={loading ? "..." : domiciliarios} color="text-purple-600" footer="Disponibles" />
-            <StatCard title="Tiempo Promedio" icon={<MapPin />} value={loading ? "..." : `${tiempoPromedio}m`} color="text-orange-600" footer="Por servicio" />
+          {/* Stats Cards con fondo blanco */}
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard title="Servicios Activos" icon={<Clock className="text-blue-600" />} value={loading ? "..." : activos} footer="En proceso" accent="text-blue-600" />
+            <StatCard title="Completados Hoy" icon={<Package className="text-green-600" />} value={loading ? "..." : completadosHoy} footer="Hoy" accent="text-green-600" />
+            <StatCard title="Domiciliarios" icon={<Users className="text-purple-600" />} value={loading ? "..." : domiciliarios} footer="Disponibles" accent="text-purple-600" />
+            <StatCard title="Tiempo Promedio" icon={<MapPin className="text-orange-600" />} value={loading ? "..." : `${tiempoPromedio}m`} footer="Por servicio" accent="text-orange-600" />
           </div>
 
-          {/* Table */}
-          <SeguimientoServiciosTable
-            serviciosFiltrados={servicios}
-            loading={loading}
-            onRefresh={() => fetchServicios(page, pageSize, soloHoy)}
-            estadoConfig={estadoConfig}
-          />
+          {/* Tabla responsive */}
+          <div className="rounded-2xl bg-white shadow p-2 sm:p-4 border border-gray-100">
+            {/* Desktop table */}
+            <div className="hidden lg:block">
+              <SeguimientoServiciosTable
+                serviciosFiltrados={servicios}
+                loading={loading}
+                onRefresh={() => fetchServicios(page, pageSize, soloHoy)}
+                estadoConfig={estadoConfig}
+              />
+            </div>
+            {/* Mobile/Tablet responsive cards */}
+            <div className="block lg:hidden">
+              <SeguimientoServiciosTableResponsive
+                servicios={servicios}
+                loading={loading}
+                onRefresh={() => fetchServicios(page, pageSize, soloHoy)}
+                estadoConfig={estadoConfig}
+              />
+            </div>
+          </div>
 
           {/* Paginación */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 mt-4">
+            <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
               Página {page} de {Math.ceil(total / pageSize) || 1} ({total} servicios)
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-center sm:justify-end">
               <button
-                className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1 || loading}
               >
                 Anterior
               </button>
               <button
-                className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+                className="px-3 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
                 onClick={() => setPage(p => p + 1)}
                 disabled={page * pageSize >= total || loading}
               >
                 Siguiente
               </button>
               <select
-                className="ml-2 border rounded px-2 py-1 text-sm"
+                className="ml-2 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 value={pageSize}
                 onChange={e => {
                   setPageSize(Number(e.target.value))
@@ -185,16 +180,18 @@ export default function SeguimientoServiciosPage() {
   )
 }
 
-function StatCard({ title, icon, value, color, footer }: any) {
+import type { ReactNode } from "react"
+
+function StatCard({ title, icon, value, footer, accent }: { title: string; icon: ReactNode; value: string | number; footer: string; accent: string }) {
   return (
-    <Card>
+    <Card className="shadow-md hover:shadow-lg transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <span className="h-4 w-4 text-muted-foreground">{icon}</span>
+        <CardTitle className="text-sm font-medium text-gray-800">{title}</CardTitle>
+        <div className="p-2 bg-gray-100 rounded-lg">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${color}`}>{value}</div>
-        <p className="text-xs text-muted-foreground">{footer}</p>
+        <div className={`text-2xl font-bold ${accent}`}>{value}</div>
+        <p className="text-xs text-gray-600">{footer}</p>
       </CardContent>
     </Card>
   )

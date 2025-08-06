@@ -255,21 +255,22 @@ export default function LiquidacionServiciosPage() {
   return (
     <AuthGuard>
       <AdminLayout>
-    <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Package className="w-6 h-6 text-white" />
+        <div className="p-2 sm:p-6 space-y-3 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-800">Liquidador de servicios</h1>
-                <p className="text-gray-600">Liquida los servicios de tus colaboradores </p>
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Liquidador de Servicios</h1>
+                <p className="text-xs text-gray-600 sm:text-sm hidden sm:block">Liquida los servicios de tus colaboradores</p>
+                <p className="text-xs text-gray-600 sm:hidden">Gestión de liquidaciones</p>
               </div>
-            </div>          
+            </div>
           </div>
-             {/* Stats Cards */}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Stats Cards - Mobile-first grid */}
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
             <StatCard
               title="Total de Servicios"
               icon={<Package />}
@@ -293,10 +294,10 @@ export default function LiquidacionServiciosPage() {
             />
           </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Liquidación de Servicios de :
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Liquidación de Servicios de :
               {servicios.length > 0 && servicios[0].colaborador ? (
                 <span className="ml-2 text-purple-700 font-semibold">
                   {servicios[0].colaborador.nombre || servicios[0].colaborador.name || ''} {servicios[0].colaborador.apellido || ''}

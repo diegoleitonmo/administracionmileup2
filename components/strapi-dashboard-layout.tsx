@@ -25,12 +25,10 @@ export function StrapiDashboardLayout({ children }: StrapiDashboardLayoutProps) 
   // Mapear usuario de Strapi al formato esperado por los componentes
   const mappedUser = user
     ? {
-        id: user.id.toString(),
         name: user.username,
         email: user.email,
+        avatar: undefined,
         role: user.role?.type === "authenticated" ? "asistente" : "administrador", // Mapear según tu lógica
-        avatar: null,
-        department: user.role?.name || "Usuario",
       }
     : null
 
@@ -46,8 +44,24 @@ export function StrapiDashboardLayout({ children }: StrapiDashboardLayoutProps) 
       />
       <div className="flex">
         <Sidebar user={mappedUser} pathname={pathname} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-64"}`}>{children}</main>
+        {/* Main content con padding adaptativo tipo app móvil */}
+        <main className={`flex-1 transition-all duration-300 pt-16 min-h-screen ${
+          sidebarOpen ? "lg:ml-64" : "lg:ml-64"
+        } ml-0`}>
+          {/* Container responsive con márgenes tipo app móvil */}
+          <div className="w-full px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 max-w-full lg:max-w-7xl lg:mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
+      
+      {/* Overlay para móviles cuando el sidebar está abierto */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   )
 }

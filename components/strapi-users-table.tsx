@@ -32,37 +32,20 @@ import {
   XCircle,
 } from "lucide-react"
 import { useStrapiAuth } from "@/hooks/use-strapi-auth"
-import { strapiAuth, type StrapiUser } from "@/lib/strapi-auth"
+import { strapiAuth, StrapiUser } from "@/lib/strapi-auth"
+interface StrapiUsersTableProps {
+  users: StrapiUser[]
+  loading: boolean
+  onRefresh: () => void
+}
 
-export function StrapiUsersTable() {
-  const { jwt, user: currentUser } = useStrapiAuth()
-  const [users, setUsers] = useState<StrapiUser[]>([])
-  const [loading, setLoading] = useState(false)
+export function StrapiUsersTable({ users, loading, onRefresh }: StrapiUsersTableProps) {
   const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState("")
   const [filtroConfirmado, setFiltroConfirmado] = useState<string>("todos")
   const [filtroBloqueado, setFiltroBloqueado] = useState<string>("todos")
 
-  // Cargar usuarios
-  const loadUsers = async () => {
-    if (!jwt) return
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const usersData = await strapiAuth.getAllUsers(jwt)
-      setUsers(usersData)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Error al cargar usuarios")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadUsers()
-  }, [jwt])
+  // La carga y refresco de usuarios ahora se maneja desde el componente padre
 
   // Filtrar usuarios
   const usuariosFiltrados = users.filter((usuario) => {
@@ -77,9 +60,7 @@ export function StrapiUsersTable() {
       (filtroConfirmado === "no_confirmado" && !usuario.confirmed)
 
     const matchBloqueado =
-      filtroBloqueado === "todos" ||
-      (filtroBloqueado === "bloqueado" && usuario.blocked) ||
-      (filtroBloqueado === "no_bloqueado" && !usuario.blocked)
+      filtroBloqueado === "todos" || (filtroBloqueado === "bloqueado" && usuario.blocked) || (filtroBloqueado === "no_bloqueado" && !usuario.blocked)
 
     return matchBusqueda && matchConfirmado && matchBloqueado
   })
@@ -93,70 +74,61 @@ export function StrapiUsersTable() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Lista de Usuarios</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">{usuariosFiltrados.length} usuarios encontrados</p>
+    <>
+      <div className="rounded-2xl bg-white shadow-xl p-2 sm:p-4 border border-gray-100 w-full overflow-x-auto">
+        {/* Filtros y acciones */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+          <div className="flex-1 flex flex-col sm:flex-row gap-2">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar por nombre, email o rol..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filtroConfirmado} onValueChange={setFiltroConfirmado}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Estado de confirmación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="confirmado">Confirmados</SelectItem>
+                <SelectItem value="no_confirmado">No confirmados</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroBloqueado} onValueChange={setFiltroBloqueado}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Estado de bloqueo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="no_bloqueado">Activos</SelectItem>
+                <SelectItem value="bloqueado">Bloqueados</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={loadUsers} variant="outline" size="sm" disabled={loading}>
+          <div className="flex gap-2">
+            <Button onClick={onRefresh} variant="outline" size="sm" disabled={loading} className="h-9 px-4">
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Actualizar
             </Button>
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 h-9 px-4">
               <UserPlus className="w-4 h-4 mr-2" />
               Nuevo Usuario
             </Button>
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="flex items-center gap-4 mt-4 flex-wrap">
-          <div className="relative flex-1 min-w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Buscar por nombre, email o rol..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Select value={filtroConfirmado} onValueChange={setFiltroConfirmado}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Estado de confirmación" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="confirmado">Confirmados</SelectItem>
-              <SelectItem value="no_confirmado">No confirmados</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filtroBloqueado} onValueChange={setFiltroBloqueado}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Estado de bloqueo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="no_bloqueado">Activos</SelectItem>
-              <SelectItem value="bloqueado">Bloqueados</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-
-      <CardContent>
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
-        <div className="rounded-md border">
-          <Table>
+        <div className="w-full overflow-x-auto rounded-lg border border-gray-100 bg-white">
+          <Table className="min-w-[720px] text-xs sm:text-sm align-middle">
             <TableHeader>
               <TableRow>
                 <TableHead>Usuario</TableHead>
@@ -178,7 +150,7 @@ export function StrapiUsersTable() {
                         <AvatarFallback>
                           {usuario.username
                             .split(" ")
-                            .map((n) => n[0])
+                            .map((n: string) => n[0])
                             .join("")
                             .toUpperCase()}
                         </AvatarFallback>
@@ -304,7 +276,7 @@ export function StrapiUsersTable() {
             <p className="text-gray-500">Cargando usuarios...</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </>
   )
 }

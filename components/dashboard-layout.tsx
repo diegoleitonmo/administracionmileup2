@@ -90,10 +90,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
-      <div className="flex">
+      <div className="flex pt-14 sm:pt-16">
+        {/* Sidebar hamburguesa: oculto en móvil, visible en desktop */}
         <Sidebar user={normalizedUser} pathname={pathname} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-64"}`}>
-          <div className="w-full mx-auto mt-4 pt-8 pb-6 px-2 sm:px-4 md:px-6 lg:px-8">
+        <main className="flex-1 min-w-0">
+          <div className="w-full mx-auto py-4 px-2 sm:px-4 md:px-6 lg:px-8">
             {children}
           </div>
         </main>

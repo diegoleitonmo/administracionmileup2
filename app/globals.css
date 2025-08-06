@@ -8,6 +8,29 @@
   }
 }
 
+/* Mejoras para móviles */
+@layer base {
+  /* Mejora el scroll en dispositivos táctiles */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Mejora la legibilidad en pantallas pequeñas */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Mejora la interacción táctil */
+  button, 
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

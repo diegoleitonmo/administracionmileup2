@@ -29,6 +29,7 @@ import {
   Bike,
   Car,
   MessageSquare,
+  Users,
 } from "lucide-react"
 
 export interface Domiciliario {
@@ -92,32 +93,35 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <CardTitle>Lista de Domiciliarios</CardTitle>
+            <CardTitle className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-600" />
+              Lista de Domiciliarios
+            </CardTitle>
             <p className="text-sm text-gray-600 mt-1">
               {loading ? "Cargando..." : `${domiciliariosFiltrados.length} domiciliarios encontrados`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={onRefresh} variant="outline" size="sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button onClick={onRefresh} variant="outline" size="sm" className="rounded-lg border-purple-200 hover:bg-purple-50">
               <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+            <Button size="sm" className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg shadow-sm">
               <UserPlus className="w-4 h-4 mr-2" />
-              Nuevo Domiciliario
+              <span className="hidden sm:inline">Nuevo Domiciliario</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           </div>
         </div>
-
-      
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-md border">
+        {/* Vista tabla para desktop */}
+        <div className="hidden lg:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -248,6 +252,101 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
               })}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Vista cards para móviles */}
+        <div className="lg:hidden space-y-3">
+          {domiciliariosFiltrados.map((domiciliario) => {
+            const DisponibilidadIcon = disponibilidadConfig[domiciliario.disponible].icon
+            const TransporteIcon = transporteConfig[domiciliario.transporte].icon
+            return (
+              <Card key={domiciliario.id} className="shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={domiciliario.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-purple-100 to-purple-200 text-purple-700 font-semibold">
+                          {domiciliario.nombre
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{domiciliario.nombre}</h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span>⭐ {domiciliario.calificacion}</span>
+                          <span>•</span>
+                          <span>{domiciliario.serviciosCompletados} servicios</span>
+                        </div>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <a href={`/liquidacion-servicios?domiciliario=${domiciliario.id}`} className="flex items-center">
+                            <Eye className="mr-2 h-4 w-4" />
+                            Liquidar servicios
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Llamar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Mensaje
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">{domiciliario.telefono}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">{domiciliario.ciudad}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TransporteIcon className={`w-4 h-4 ${transporteConfig[domiciliario.transporte].color}`} />
+                      <span className="text-sm text-gray-600">{transporteConfig[domiciliario.transporte].label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600 truncate">{domiciliario.correo}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Badge className={`${estadoConfig[domiciliario.estado].color} border text-xs`}>
+                        {estadoConfig[domiciliario.estado].label}
+                      </Badge>
+                      <Badge className={`${disponibilidadConfig[domiciliario.disponible].color} border text-xs`}>
+                        <DisponibilidadIcon className="w-3 h-3 mr-1" />
+                        {disponibilidadConfig[domiciliario.disponible].label}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-gray-500 font-mono">{domiciliario.identificacion}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {domiciliariosFiltrados.length === 0 && (
