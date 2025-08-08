@@ -207,6 +207,7 @@ export default function LiquidacionServiciosPage() {
     setShowLiquidacionModal(true)
   }
 
+
   const handleEnviarWhatsapp = async () => {
     // Solo enviar los servicios seleccionados (chequeados)
     const valores = getValoresLiquidacion();
@@ -249,12 +250,51 @@ export default function LiquidacionServiciosPage() {
     }
   }
 
+  const handleEnviarWhatsappConfirmacion = async ()=> {
+
+    const valores = getValoresLiquidacion();
+    const serviciosSeleccionados = servicios.filter(s => selectedServicios.includes(s.id));
+    const datos = {
+      telefonoDomiciliario: valores.telefonoDomiciliario,
+      nombreDomiciliario: valores.nombreDomiciliario,
+      serviciosCount: valores.serviciosCount,
+      fechaInicio: valores.fechaInicioLiquidacion,
+      fechaFin: valores.fechaFinLiquidacion,
+      urbanos: valores.urbanos,
+      rurales: valores.rurales,
+      totalValor: valores.totalValor,
+      valorDomiciliario: valores.valorDomiciliario,
+      valorAplicacion: valores.valorAplicacion,
+      servicios: serviciosSeleccionados.map(s => ({
+        id: s.id,
+        fechaSolicitud: s.fechaSolicitud,
+        estado: s.estado,
+        comercio: s.comercio?.nombre,
+        tipo: s.tipo?.descripcion,
+        valor: (s.tipo?.descripcion?.toLowerCase() === "foráneo" ? 8000 : 5000),
+        locacion: s.locacion?.tipo,
+        cliente: s.colaborador?.nombre + " " + s.colaborador?.apellido,
+        liquidado: s.liquidado
+      }))
+    };
+    try {
+      const res = await fetch("https://n8n-n8n.ltlh96.easypanel.host/webhook/noitificaciondomiciliariopago", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos)
+      });
+      if (!res.ok) throw new Error("Error al enviar notificación");
+      alert("Notificación enviada por WhatsApp correctamente");
+    } catch (err) {
+      console.error("Error enviando notificación WhatsApp:", err);
+      alert("Error al enviar notificación por WhatsApp");
+    }
+  }
+
   const handleConfirmarLiquidacion = async () => {
     try {
-      // Obtener los documentIds de los servicios seleccionados
       const serviciosSeleccionados = servicios.filter(s => selectedServicios.includes(s.id))
-      const documentIds = serviciosSeleccionados.map(s => s.documentId)
-      
+      const documentIds = serviciosSeleccionados.map(s => s.documentId)      
       if (documentIds.length === 0) {
         console.error('No hay servicios seleccionados para liquidar')
         return
@@ -262,12 +302,13 @@ export default function LiquidacionServiciosPage() {
 
       console.log('Liquidando servicios...', documentIds)
       
-      // Llamar al servicio para liquidar
-      await serviciosService.liquidarServicios(documentIds)
-      
+      let liquidados = await serviciosService.liquidarServicios(documentIds)
+      if (liquidados) {
+        await handleEnviarWhatsappConfirmacion();
+      }  
+
       console.log('Servicios liquidados exitosamente')
       
-      // Cerrar modal y limpiar selección
       setShowLiquidacionModal(false)
       setSelectedServicios([])
       
