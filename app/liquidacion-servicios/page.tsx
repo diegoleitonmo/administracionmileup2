@@ -174,6 +174,7 @@ export default function LiquidacionServiciosPage() {
 
     return {
       serviciosCount: serviciosSeleccionados.length,
+      telefonoDomiciliario: ` ${servicios[0].colaborador.telefono}`,
       urbanos,
       rurales,
       totalValor,
@@ -206,10 +207,46 @@ export default function LiquidacionServiciosPage() {
     setShowLiquidacionModal(true)
   }
 
-  const handleEnviarWhatsapp = () => {
-    // Llamada a n8n webhook para enviar por WhatsApp
-    console.log('Enviando por WhatsApp...')
-    // TODO: Implementar llamada a n8n
+  const handleEnviarWhatsapp = async () => {
+    // Solo enviar los servicios seleccionados (chequeados)
+    const valores = getValoresLiquidacion();
+    const serviciosSeleccionados = servicios.filter(s => selectedServicios.includes(s.id));
+    // Construir payload SOLO con los servicios seleccionados
+    const payload = {
+      telefonoDomiciliario: valores.telefonoDomiciliario,
+      nombreDomiciliario: valores.nombreDomiciliario,
+      serviciosCount: valores.serviciosCount,
+      fechaInicio: valores.fechaInicioLiquidacion,
+      fechaFin: valores.fechaFinLiquidacion,
+      urbanos: valores.urbanos,
+      rurales: valores.rurales,
+      totalValor: valores.totalValor,
+      valorDomiciliario: valores.valorDomiciliario,
+      valorAplicacion: valores.valorAplicacion,
+      servicios: serviciosSeleccionados.map(s => ({
+        id: s.id,
+        fechaSolicitud: s.fechaSolicitud,
+        estado: s.estado,
+        comercio: s.comercio?.nombre,
+        tipo: s.tipo?.descripcion,
+        valor: (s.tipo?.descripcion?.toLowerCase() === "foráneo" ? 8000 : 5000),
+        locacion: s.locacion?.tipo,
+        cliente: s.colaborador?.nombre + " " + s.colaborador?.apellido,
+        liquidado: s.liquidado
+      }))
+    };
+    try {
+      const res = await fetch("https://n8n-n8n.ltlh96.easypanel.host/webhook/noitificaciondomiciliario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Error al enviar notificación");
+      alert("Notificación enviada por WhatsApp correctamente");
+    } catch (err) {
+      console.error("Error enviando notificación WhatsApp:", err);
+      alert("Error al enviar notificación por WhatsApp");
+    }
   }
 
   const handleConfirmarLiquidacion = async () => {
