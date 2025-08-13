@@ -237,7 +237,7 @@ export default function LiquidacionServiciosPage() {
       }))
     };
     try {
-      const res = await fetch("https://n8n-n8n.ltlh96.easypanel.host/webhook/noitificaciondomiciliario", {
+      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook-test/noitificaciondomiciliario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -278,7 +278,7 @@ export default function LiquidacionServiciosPage() {
       }))
     };
     try {
-      const res = await fetch("https://n8n-n8n.ltlh96.easypanel.host/webhook/noitificaciondomiciliariopago", {
+      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook-test/noitificaciondomiciliariopago", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datos)
