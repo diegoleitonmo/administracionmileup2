@@ -237,16 +237,23 @@ export default function LiquidacionServiciosPage() {
       }))
     };
     try {
-      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook-test/noitificaciondomiciliario", {
+      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook/noitificaciondomiciliario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Error al enviar notificación");
+      if (!res.ok) {
+        let errorMsg = "Error al enviar notificación";
+        try {
+          const errorData = await res.json();
+          if (errorData && errorData.message) errorMsg = errorData.message;
+        } catch {}
+        throw new Error(errorMsg);
+      }
       alert("Notificación enviada por WhatsApp correctamente");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error enviando notificación WhatsApp:", err);
-      alert("Error al enviar notificación por WhatsApp");
+      alert(err?.message ? `Error: ${err.message}` : "Error al enviar notificación por WhatsApp");
     }
   }
 
@@ -278,7 +285,7 @@ export default function LiquidacionServiciosPage() {
       }))
     };
     try {
-      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook-test/noitificaciondomiciliariopago", {
+      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook/noitificaciondomiciliariopago", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datos)
