@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ import {
   Users,
 } from "lucide-react"
 import { domiciliariosService } from "@/services/domiciliarios.service"
+import { ciudadesService, CiudadStrapi } from "@/services/ciudades.service"
 
 export interface Domiciliario {
   id: string
@@ -66,6 +67,75 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
 
   const [modal, setModal] = useState<ModalState>({ open: false, type: null, domiciliario: null })
   const [accionLoading, setAccionLoading] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+  direccion: "",
+    numeroIdentificacion: "",
+    correoElectronico: "",
+    tipotransporte: "moto",
+  tipoIdentificacion: "cedula",
+  datoBancario: "",
+    ciudadId: "",
+  })
+  const [ciudadesCatalogo, setCiudadesCatalogo] = useState<CiudadStrapi[]>([])
+  const [ciudadesLoading, setCiudadesLoading] = useState(false)
+  const [ciudadesError, setCiudadesError] = useState<string | null>(null)
+
+  const resetForm = () => setForm({ nombre: "", apellido: "", telefono: "", direccion: "", numeroIdentificacion: "", correoElectronico: "", tipotransporte: "moto", tipoIdentificacion: "cedula", datoBancario: "", ciudadId: "" })
+
+  useEffect(() => {
+    if (!createOpen) return
+    const load = async () => {
+      setCiudadesLoading(true)
+      setCiudadesError(null)
+      try {
+        const res = await ciudadesService.getCiudades({ sort: ["nombre:asc"], pagination: { pageSize: 100 } })
+        setCiudadesCatalogo(res.data)
+      } catch (e: any) {
+        setCiudadesError(e?.message || "Error cargando ciudades")
+      } finally {
+        setCiudadesLoading(false)
+      }
+    }
+    load()
+  }, [createOpen])
+
+  const handleCreate = async () => {
+    // Validación mínima
+    if (!form.nombre || !form.apellido || !form.telefono || !form.direccion || !form.numeroIdentificacion) {
+      alert("Nombre, apellido, teléfono, dirección y número identificación son obligatorios")
+      return
+    }
+    setCreateLoading(true)
+    try {
+      await domiciliariosService.create({
+        nombre: form.nombre,
+        apellido: form.apellido,
+        telefono: form.telefono,
+        direccion: form.direccion,
+        numeroIdentificacion: form.numeroIdentificacion,
+        correoElectronico: form.correoElectronico,
+        tipotransporte: form.tipotransporte,
+        tipoIdentificacion: form.tipoIdentificacion,
+        datoBancario: form.datoBancario || null,
+        Activo: true,
+        disponibilidad: true,
+        ...(form.ciudadId ? { ciudad: Number(form.ciudadId) } : {}),
+      } as any)
+      resetForm()
+      setCreateOpen(false)
+      onRefresh()
+    } catch (e: any) {
+      console.error(e)
+      alert("Error creando domiciliario: " + (e?.message || "Error"))
+    } finally {
+      setCreateLoading(false)
+    }
+  }
 
   const handleCambiarDisponibilidad = (domiciliario: Domiciliario) => {
     setModal({ open: true, type: "disponibilidad", domiciliario })
@@ -150,7 +220,7 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
               <RefreshCw className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button size="sm" className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg shadow-sm">
+            <Button onClick={() => setCreateOpen(true)} size="sm" className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg shadow-sm">
               <UserPlus className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Nuevo Domiciliario</span>
               <span className="sm:hidden">Nuevo</span>
@@ -420,9 +490,7 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
                 <Button
                   variant="outline"
                   disabled={accionLoading}
-                  onClick={() =>
-                    setModal({ open: false, type: null, domiciliario: null })
-                  }
+                  onClick={() => setModal({ open: false, type: null, domiciliario: null })}
                 >
                   Cancelar
                 </Button>
@@ -449,6 +517,85 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
                     : "Inactivar"}
                 </Button>
               </div>
+            </div>
+          </div>
+        )}
+        {createOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Registrar nuevo domiciliario</h3>
+                <button onClick={() => setCreateOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Nombre *</label>
+                  <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Apellido *</label>
+                  <input value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Teléfono *</label>
+                  <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Dirección *</label>
+                  <input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" placeholder="Calle / Carrera" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Identificación</label>
+                  <input value={form.numeroIdentificacion} onChange={e => setForm(f => ({ ...f, numeroIdentificacion: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Tipo Identificación</label>
+                  <select value={form.tipoIdentificacion} onChange={e => setForm(f => ({ ...f, tipoIdentificacion: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm">
+                    <option value="cedula">Cédula</option>
+                    <option value="tarjeta_identidad">Tarjeta Identidad</option>
+                    <option value="pasaporte">Pasaporte</option>
+                    <option value="nit">NIT</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Correo</label>
+                  <input type="email" value={form.correoElectronico} onChange={e => setForm(f => ({ ...f, correoElectronico: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Transporte</label>
+                  <select value={form.tipotransporte} onChange={e => setForm(f => ({ ...f, tipotransporte: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm">
+                    <option value="moto">Moto</option>
+                    <option value="bicicleta">Bicicleta</option>
+                    <option value="carro">Carro</option>
+                    <option value="a_pie">A pie</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Dato Bancario</label>
+                  <input value={form.datoBancario} onChange={e => setForm(f => ({ ...f, datoBancario: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1 text-sm" placeholder="Cuenta / Nequi / etc" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium text-gray-600">Ciudad</label>
+                  <select
+                    value={form.ciudadId}
+                    onChange={e => setForm(f => ({ ...f, ciudadId: e.target.value }))}
+                    className="mt-1 w-full border rounded px-2 py-1 text-sm bg-white"
+                  >
+                    <option value="">Selecciona una ciudad</option>
+                    {ciudadesLoading && <option value="" disabled>Cargando...</option>}
+                    {ciudadesError && <option value="" disabled>Error al cargar</option>}
+                    {!ciudadesLoading && !ciudadesError && ciudadesCatalogo.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-gray-500 mt-1">Catálogo desde /api/ciudades</p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" disabled={createLoading} onClick={() => { setCreateOpen(false); resetForm() }}>Cancelar</Button>
+                <Button disabled={createLoading} onClick={handleCreate}>{createLoading ? "Creando..." : "Crear"}</Button>
+              </div>
+              <p className="text-[11px] text-gray-500">Campos marcados con * son obligatorios.</p>
             </div>
           </div>
         )}

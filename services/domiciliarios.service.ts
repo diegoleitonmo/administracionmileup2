@@ -70,6 +70,18 @@ private endpoint = "colaboradors";
     );
   }
 
+  // crear colaborador
+  async create(data: Partial<Omit<ColaboradorStrapi, "id" | "createdAt" | "updatedAt" | "publishedAt">>) {
+    return strapi.post<ColaboradorStrapi>(
+      this.endpoint,
+      data,
+      {
+        populate: ["*"],
+      },
+      false // Usar API Token
+    )
+  }
+
 }
 
 export const domiciliariosService = new DomiciliariosService()
