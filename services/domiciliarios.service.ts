@@ -56,6 +56,20 @@ async getColaboradorById(id: number, populate: string = "*") {
   )
 }
 
+private endpoint = "colaboradors";
+// editar colaborador 
+  async update(id: string | number, data: Partial<Omit<ColaboradorStrapi, "id">>) {
+    return strapi.put<ColaboradorStrapi>(
+      this.endpoint,
+      id,
+      data,
+      {
+        populate: ["*"],
+      },
+      false, // Usar API Token
+    );
+  }
+
 }
 
 export const domiciliariosService = new DomiciliariosService()

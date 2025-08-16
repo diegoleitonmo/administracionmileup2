@@ -31,9 +31,11 @@ import {
   MessageSquare,
   Users,
 } from "lucide-react"
+import { domiciliariosService } from "@/services/domiciliarios.service"
 
 export interface Domiciliario {
   id: string
+  documentId: string
   nombre: string
   telefono: string
   ciudad: string
@@ -54,11 +56,49 @@ type DomiciliariosTableProps = {
   onRefresh: () => void
 }
 
+type ModalState = { open: boolean; type: "disponibilidad" | "suspender" | null; domiciliario: Domiciliario | null }
+
 export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: DomiciliariosTableProps) {
   const [filtroEstado, setFiltroEstado] = useState<string>("todos")
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState<string>("todos")
   const [filtroCiudad, setFiltroCiudad] = useState<string>("todos")
   const [busqueda, setBusqueda] = useState("")
+
+  const [modal, setModal] = useState<ModalState>({ open: false, type: null, domiciliario: null })
+  const [accionLoading, setAccionLoading] = useState(false)
+
+  const handleCambiarDisponibilidad = (domiciliario: Domiciliario) => {
+    setModal({ open: true, type: "disponibilidad", domiciliario })
+  }
+
+  const handleSuspender = (domiciliario: Domiciliario) => {
+    setModal({ open: true, type: "suspender", domiciliario })
+  }
+
+  const confirmarAccion = async () => {
+    if (!modal.domiciliario) return
+    setAccionLoading(true)
+    try {
+      // Usar documentId si existe, fallback al id
+      
+      const targetId = modal.domiciliario.documentId
+      if (modal.type === "disponibilidad") {
+        const isDisponible = modal.domiciliario.disponible === "disponible"
+        await domiciliariosService.update(targetId, { disponibilidad: !isDisponible })
+      } else if (modal.type === "suspender") {
+         const isActivo = modal.domiciliario.estado === "activo"
+
+        await domiciliariosService.update(targetId, { Activo: !isActivo })
+      }
+      await onRefresh()
+    } catch (err: any) {
+      console.error("Actualizar domiciliario error", err)
+      alert("No se pudo actualizar el domiciliario: " + (err?.message || "Error"))
+    } finally {
+      setAccionLoading(false)
+      setModal({ open: false, type: null, domiciliario: null })
+    }
+  }
 
   const ciudades = Array.from(new Set(domiciliarios.map((d) => d.ciudad)))
 
@@ -236,11 +276,11 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
                             Enviar correo
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCambiarDisponibilidad(domiciliario)}>
                             <UserCheck className="mr-2 h-4 w-4" />
-                            Cambiar disponibilidad
+                            {domiciliario.disponible === "disponible" ? "disponibilidad" : "Habilitar disponibilidad"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem className="text-red-600" onClick={() => handleSuspender(domiciliario)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Suspender
                           </DropdownMenuItem>
@@ -349,11 +389,70 @@ export function DomiciliariosTable({ domiciliarios, loading, onRefresh }: Domici
           })}
         </div>
 
-        {domiciliariosFiltrados.length === 0 && (
+        {domiciliariosFiltrados.length === 0 && !loading && (
           <div className="text-center py-8">
             <p className="text-gray-500">No se encontraron domiciliarios con los filtros aplicados</p>
           </div>
         )}
+        {/* Modal */}
+       {modal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+              <h3 className="text-lg font-semibold mb-2">
+                {modal.type === "disponibilidad"
+                  ? "Confirmar cambio de disponibilidad"
+                  : "Confirmar cambio de estado"}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {modal.type === "disponibilidad"
+                  ? `¿Seguro que deseas ${
+                      modal.domiciliario?.disponible === "disponible"
+                        ? "deshabilitar"
+                        : "habilitar"
+                    } la disponibilidad de ${modal.domiciliario?.nombre}?`
+                  : `¿Seguro que deseas ${
+                      modal.domiciliario?.estado === "inactivo"
+                        ? "activar"
+                        : "inactivar"
+                    } al colaborador: ${modal.domiciliario?.nombre}?`}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  disabled={accionLoading}
+                  onClick={() =>
+                    setModal({ open: false, type: null, domiciliario: null })
+                  }
+                >
+                  Cancelar
+                </Button>
+
+                {/* Botón dinámico */}
+                <Button
+                  onClick={confirmarAccion}
+                  disabled={accionLoading}
+                  className={
+                    modal.type === "suspender" &&
+                    modal.domiciliario?.estado !== "inactivo"
+                      ? "bg-red-600 text-white hover:bg-red-700"
+                      : "bg-green-600 text-white hover:bg-green-700"
+                  }
+                >
+                  {accionLoading
+                    ? "Guardando..."
+                    : modal.type === "disponibilidad"
+                    ? modal.domiciliario?.disponible === "disponible"
+                      ? "Deshabilitar"
+                      : "Habilitar"
+                    : modal.domiciliario?.estado === "inactivo"
+                    ? "Activar"
+                    : "Inactivar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   )

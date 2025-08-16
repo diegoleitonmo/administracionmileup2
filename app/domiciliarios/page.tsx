@@ -31,6 +31,7 @@ export default function DomiciliariosPage() {
     const disponible: Domiciliario["disponible"] = colab.disponibilidad ? "disponible" : "desconectado";
     return {
       id: colab.id.toString(),
+      documentId: colab.documentId,
       nombre: `${colab.nombre} ${colab.apellido}`,
       telefono: colab.telefono,
       ciudad: colab.ciudad?.nombre || "",
