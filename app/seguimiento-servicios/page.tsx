@@ -18,6 +18,9 @@ export default function SeguimientoServiciosPage() {
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
   const [soloHoy, setSoloHoy] = useState(true)
+  // Estado para búsqueda y filtro
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const fetchServicios = async (pageArg = page, pageSizeArg = pageSize, hoy = soloHoy) => {
     setLoading(true)
@@ -120,7 +123,25 @@ export default function SeguimientoServiciosPage() {
             {/* Desktop table */}
             <div className="hidden lg:block">
               <SeguimientoServiciosTable
-                serviciosFiltrados={servicios}
+                serviciosFiltrados={
+                  servicios.filter(s => {
+                    // Filtro de búsqueda por ID, comercio o domiciliario
+                    const term = busqueda.toLowerCase();
+                    const matchBusqueda =
+                      !term ||
+                      String(s.id).toLowerCase().includes(term) ||
+                      (s.comercio?.nombre || "").toLowerCase().includes(term) ||
+                      (s.colaborador?.nombre || "").toLowerCase().includes(term) ||
+                      (s.colaborador?.apellido || "").toLowerCase().includes(term);
+                    // Filtro de estado
+                    const matchEstado = filtroEstado === "todos" || s.estado === filtroEstado;
+                    return matchBusqueda && matchEstado;
+                  })
+                }
+                busqueda={busqueda}
+                setBusqueda={setBusqueda}
+                filtroEstado={filtroEstado}
+                setFiltroEstado={setFiltroEstado}
                 loading={loading}
                 onRefresh={() => fetchServicios(page, pageSize, soloHoy)}
                 estadoConfig={estadoConfig}
