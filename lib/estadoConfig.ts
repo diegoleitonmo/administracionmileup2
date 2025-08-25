@@ -1,6 +1,12 @@
 import { Clock, CheckCircle2, XCircle, Truck, Store, Box } from "lucide-react"
 
-export const estadoConfig = {
+type EstadoConfigItem = {
+  label: string;
+  color: string;
+  icon: any;
+};
+
+export const estadoConfig: Record<string, EstadoConfigItem> = {
   pendiente: {
     label: "Pendiente",
     color: "bg-yellow-100 text-yellow-800",
