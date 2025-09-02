@@ -141,30 +141,7 @@ export default function ListaServicios({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-4 mt-4">
-          <Input
-            placeholder="Buscar por ID, comercio o domiciliario..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-10"
-          />
-          <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-            <SelectTrigger className="w-48">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filtrar por estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los estados</SelectItem>
-              <SelectItem value="pendiente">Pendiente</SelectItem>
-              <SelectItem value="asignado">Asignado</SelectItem>
-              <SelectItem value="llegada_comercio">Llegada a comercio</SelectItem>
-              <SelectItem value="recibi_paquete">Recibí paquete</SelectItem>
-              <SelectItem value="entregado">Entregado</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-              <SelectItem value="eliminado">Eliminado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+   
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">

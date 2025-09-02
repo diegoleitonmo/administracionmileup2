@@ -348,14 +348,15 @@ export default function SeguimientoServiciosPage() {
               >
                 {loading ? "Cargando..." : "Aplicar filtros"}
               </Button>
+                <Button variant="outline" onClick={handleExportExcel} className="flex gap-2 items-center">
+              Descargar Excel
+            </Button>
             </div>
           </div>
 
           {/* Tabla responsive y exportación */}
           <div className="flex justify-end mb-2">
-            <Button variant="outline" onClick={handleExportExcel} className="flex gap-2 items-center">
-              Descargar Excel
-            </Button>
+          
           </div>
           <div className="rounded-2xl bg-white shadow p-2 sm:p-4 border border-gray-100">
             {/* Desktop table */}
