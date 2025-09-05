@@ -285,7 +285,7 @@ export default function LiquidacionServiciosPage() {
       }))
     };
     try {
-      const res = await fetch("https://n8nmileup-n8n.te6nfs.easypanel.host/webhook/noitificaciondomiciliariopago", {
+      const res = await fetch("https://n8n-production-48e2.up.railway.app/webhook/noitificaciondomiciliariopago", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datos)
